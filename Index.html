@@ -1,0 +1,2265 @@
+<!doctype html>
+<html lang="th" class="h-full">
+ <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ระบบจัดการปั๊มน้ำมัน</title>
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <script src="/_sdk/data_sdk.js"></script>
+  <script src="/_sdk/element_sdk.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.1/jspdf.plugin.autotable.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * { font-family: 'Sarabun', sans-serif; }
+    .tab-active { background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%); color: white; }
+    .card-gradient { background: linear-gradient(145deg, #ffffff 0%, #f8fafc 100%); }
+    .header-gradient { background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 50%, #3b82f6 100%); }
+    .fuel-badge { padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 600; }
+    input[type="number"]::-webkit-inner-spin-button,
+    input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+    input[type="number"] { -moz-appearance: textfield; }
+    .btn-primary { background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); }
+    .btn-primary:hover { background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%); }
+    .btn-success { background: linear-gradient(135deg, #16a34a 0%, #15803d 100%); }
+    .btn-success:hover { background: linear-gradient(135deg, #15803d 0%, #166534 100%); }
+    .btn-danger { background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%); }
+    .btn-danger:hover { background: linear-gradient(135deg, #b91c1c 0%, #991b1b 100%); }
+    .btn-warning { background: linear-gradient(135deg, #ea580c 0%, #c2410c 100%); }
+    .btn-warning:hover { background: linear-gradient(135deg, #c2410c 0%, #92400e 100%); }
+    .modal-overlay { background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(4px); }
+    .stat-card { transition: transform 0.2s, box-shadow 0.2s; }
+    .stat-card:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(0,0,0,0.1); }
+    .nozzle-card { background: #f8fafc; border-left: 4px solid #3b82f6; }
+    .stock-card { background: linear-gradient(135deg, #fef3c7 0%, #fef08a 100%); border-left: 4px solid #f59e0b; }
+  </style>
+ </head>
+ <body class="h-full bg-slate-100">
+  <div id="app" class="h-full flex flex-col overflow-auto">
+   <header class="header-gradient text-white p-4 shadow-lg sticky top-0 z-40">
+    <div class="max-w-7xl mx-auto flex items-center justify-between">
+     <div class="flex items-center gap-3">
+      <div class="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
+       <span class="text-2xl">⛽</span>
+      </div>
+      <div>
+       <h1 id="appTitle" class="text-xl font-bold">ระบบจัดการปั๊มน้ำมัน</h1>
+       <p class="text-blue-100 text-sm">บันทึก • สต๊อก • รายงาน</p>
+      </div>
+     </div>
+     <div class="text-right">
+      <p class="text-sm text-blue-100">วันที่</p>
+      <p id="currentDate" class="font-semibold"></p>
+     </div>
+    </div>
+   </header>
+   <nav class="bg-white shadow-sm border-b sticky top-16 z-30">
+    <div class="max-w-7xl mx-auto flex overflow-x-auto">
+     <button onclick="switchTab('record')" id="tab-record" class="tab-active flex-1 min-w-max px-4 py-3 text-sm font-medium transition-all rounded-t-lg"> 📝 บันทึกข้อมูล </button>
+     <button onclick="switchTab('price')" id="tab-price" class="flex-1 min-w-max px-4 py-3 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-all rounded-t-lg"> 💰 ราคา </button>
+     <button onclick="switchTab('stock')" id="tab-stock" class="flex-1 min-w-max px-4 py-3 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-all rounded-t-lg"> 🛢️ สต๊อก </button>
+     <button onclick="switchTab('report')" id="tab-report" class="flex-1 min-w-max px-4 py-3 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-all rounded-t-lg"> 📊 รายงาน </button>
+     <button onclick="switchTab('settings')" id="tab-settings" class="flex-1 min-w-max px-4 py-3 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-all rounded-t-lg"> ⚙️ ตั้งค่า </button>
+    </div>
+   </nav>
+   <main class="flex-1 p-4 max-w-7xl mx-auto w-full pb-24">
+    <section id="section-record" class="space-y-4">
+     <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div class="stat-card card-gradient rounded-xl p-4 shadow-sm border">
+       <p class="text-xs text-gray-500 mb-1">ยอดขายวันนี้</p>
+       <p id="todaySales" class="text-lg font-bold text-blue-600">฿0</p>
+      </div>
+      <div class="stat-card card-gradient rounded-xl p-4 shadow-sm border">
+       <p class="text-xs text-gray-500 mb-1">ลิตรที่ขาย</p>
+       <p id="todayLiters" class="text-lg font-bold text-green-600">0 ลิตร</p>
+      </div>
+      <div class="stat-card card-gradient rounded-xl p-4 shadow-sm border">
+       <p class="text-xs text-gray-500 mb-1">ราคาลาย</p>
+       <p id="todayProfit" class="text-lg font-bold text-emerald-600">฿0</p>
+      </div>
+      <div class="stat-card card-gradient rounded-xl p-4 shadow-sm border">
+       <p class="text-xs text-gray-500 mb-1">จำนวนรายการ</p>
+       <p id="todayTransactions" class="text-lg font-bold text-purple-600">0</p>
+      </div>
+     </div>
+
+     <div class="card-gradient rounded-xl p-4 shadow-sm border">
+      <h2 class="font-semibold text-gray-800 mb-4 flex items-center gap-2"><span class="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">📝</span> บันทึกมิเตอร์ประจำกะ</h2>
+      <form id="recordForm" class="space-y-4">
+       <div class="grid grid-cols-2 gap-3 pb-4 border-b">
+        <div><label class="block text-xs font-medium text-gray-600 mb-1">วันที่</label> <input type="date" id="recordDate" class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+        </div>
+        <div><label class="block text-xs font-medium text-gray-600 mb-1">กะ</label> <select id="recordShift" class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"> <option value="morning">☀️ กะเช้า (06:00-18:00)</option> <option value="evening">🌙 กะบ่าย (18:00-06:00)</option> </select>
+        </div>
+       </div>
+       <div>
+        <h3 class="text-sm font-medium text-gray-800 mb-3">📊 บันทึกมิเตอร์แต่ละหัวจ่าย</h3>
+        <div id="nozzleMetersContainer" class="space-y-3">
+         <p class="text-gray-400 text-xs text-center py-4">กรุณาเพิ่มหัวจ่ายก่อน</p>
+        </div>
+       </div>
+       <button type="submit" id="recordSubmitBtn" class="w-full btn-primary text-white py-3 rounded-lg font-medium transition-all"> 💾 บันทึกข้อมูล </button>
+      </form>
+     </div>
+
+     <div class="card-gradient rounded-xl p-4 shadow-sm border">
+      <h2 class="font-semibold text-gray-800 mb-4 flex items-center gap-2"><span class="w-8 h-8 bg-amber-100 rounded-lg flex items-center justify-center">📊</span> สรุปการใช้น้ำมันวันนี้</h2>
+      <div id="todayFuelSummary" class="space-y-3">
+       <p class="text-gray-400 text-sm text-center py-4">ยังไม่มีรายการวันนี้</p>
+      </div>
+     </div>
+
+     <div class="card-gradient rounded-xl p-4 shadow-sm border">
+      <h2 class="font-semibold text-gray-800 mb-3 flex items-center gap-2"><span class="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">✅</span> รายการวันนี้</h2>
+      <div id="todayRecords" class="space-y-2 max-h-64 overflow-y-auto">
+       <p class="text-gray-400 text-sm text-center py-4">ยังไม่มีรายการวันนี้</p>
+      </div>
+     </div>
+
+     <div class="card-gradient rounded-xl p-4 shadow-sm border">
+      <h2 class="font-semibold text-gray-800 mb-4 flex items-center gap-2"><span class="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">📖</span> ดูประวัติมิเตอร์</h2>
+      <form id="historyForm" class="space-y-3 mb-4 pb-4 border-b" onsubmit="return false">
+       <div class="grid grid-cols-2 gap-3">
+        <div><label class="block text-xs font-medium text-gray-600 mb-1">วันที่</label> <input type="date" id="historyDate" class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+        </div>
+        <div><label class="block text-xs font-medium text-gray-600 mb-1">กะ</label> <select id="historyShift" class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"> <option value="">ทั้งหมด</option> <option value="morning">☀️ กะเช้า</option> <option value="evening">🌙 กะบ่าย</option> </select>
+        </div>
+       </div>
+      </form>
+      <div id="historyResults" class="space-y-3">
+       <p class="text-gray-400 text-sm text-center py-4">เลือกวันที่เพื่อดูประวัติ</p>
+      </div>
+     </div>
+    </section>
+
+    <section id="section-price" class="hidden space-y-4">
+     <div class="card-gradient rounded-xl p-4 shadow-sm border">
+      <h2 class="font-semibold text-gray-800 mb-4 flex items-center gap-2"><span class="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">💰</span> ตั้งค่าราคาน้ำมัน</h2>
+      <form id="priceForm" class="space-y-3">
+       <div><label class="block text-xs font-medium text-gray-600 mb-1">ชนิดน้ำมัน</label> <select id="priceFormFuelType" class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"> <option value="">เลือกชนิดน้ำมัน...</option> </select>
+       </div>
+       <div class="grid grid-cols-1 gap-3">
+        <div><label class="block text-xs font-medium text-gray-600 mb-1">ราคาขาย (฿/ลิตร)</label> <input type="number" id="priceFormSalePrice" step="0.01" placeholder="0.00" class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+        </div>
+       </div>
+       <div class="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+        <p class="text-xs text-blue-700 mb-2">🔧 ต้นทุนต่อลิตร</p>
+        <p id="priceFormCostPriceDisplay" class="text-lg font-bold text-blue-600">คำนวณจากสต๊อก: ฿0.00</p>
+        <p class="text-xs text-blue-600 mt-2">ระบบคำนวณอัตโนมัติจากการเติมสต๊อกจริง ไม่ต้องกรอกเอง ✨</p>
+       </div>
+       <button type="submit" class="w-full btn-primary text-white py-3 rounded-lg font-medium transition-all"> 💾 บันทึกราคา </button>
+      </form>
+     </div>
+     <div class="card-gradient rounded-xl p-4 shadow-sm border">
+      <h2 class="font-semibold text-gray-800 mb-3 flex items-center gap-2"><span class="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">📊</span> ราคาปัจจุบัน</h2>
+      <div id="priceList" class="space-y-2">
+       <p class="text-gray-400 text-sm text-center py-4">ยังไม่มีราคา</p>
+      </div>
+     </div>
+     <div class="card-gradient rounded-xl p-4 shadow-sm border">
+      <h2 class="font-semibold text-gray-800 mb-3 flex items-center gap-2"><span class="w-8 h-8 bg-indigo-100 rounded-lg flex items-center justify-center">📈</span> ประวัติการเปลี่ยนแปลงราคา</h2>
+      <div id="priceHistory" class="space-y-2 max-h-64 overflow-y-auto">
+       <p class="text-gray-400 text-sm text-center py-4">ยังไม่มีประวัติ</p>
+      </div>
+     </div>
+    </section>
+
+    <section id="section-stock" class="hidden space-y-4">
+     <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+      <div class="stat-card card-gradient rounded-xl p-4 shadow-sm border">
+       <p class="text-xs text-gray-500 mb-1">จำนวนถังทั้งหมด</p>
+       <p id="totalTanks" class="text-lg font-bold text-blue-600">0</p>
+      </div>
+      <div class="stat-card card-gradient rounded-xl p-4 shadow-sm border">
+       <p class="text-xs text-gray-500 mb-1">สต๊อกรวม</p>
+       <p id="totalStock" class="text-lg font-bold text-green-600">0 ลิตร</p>
+      </div>
+      <div class="stat-card card-gradient rounded-xl p-4 shadow-sm border">
+       <p class="text-xs text-gray-500 mb-1">มูลค่าสต๊อก</p>
+       <p id="stockValue" class="text-lg font-bold text-amber-600">฿0</p>
+      </div>
+     </div>
+     <div class="card-gradient rounded-xl p-4 shadow-sm border">
+      <h2 class="font-semibold text-gray-800 mb-4 flex items-center gap-2"><span class="w-8 h-8 bg-amber-100 rounded-lg flex items-center justify-center">🛢️</span> เติมสต๊อกถังใหญ่</h2>
+      <form id="stockForm" class="space-y-4">
+       <div class="grid grid-cols-2 gap-3">
+        <div><label class="block text-xs font-medium text-gray-600 mb-1">วันที่</label> <input type="date" id="stockDate" class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+        </div>
+        <div><label class="block text-xs font-medium text-gray-600 mb-1">ค่าขนส่งรวม (฿)</label> <input type="number" id="stockTransportCostTotal" step="0.01" placeholder="0.00" value="0" class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500" oninput="updateStockLineItems()">
+        </div>
+       </div>
+       <div id="stockLineItemsContainer" class="space-y-3">
+        <p class="text-gray-400 text-xs text-center py-4">ไม่มีรายการ</p>
+       </div>
+       <button type="button" onclick="addStockLineItem()" class="w-full bg-indigo-100 hover:bg-indigo-200 text-indigo-700 px-3 py-2 rounded-lg text-sm font-medium transition-all"> ➕ เพิ่มรายการน้ำมัน </button>
+       <div class="pt-4 border-t">
+        <div class="grid grid-cols-2 gap-3">
+         <div>
+          <p class="text-xs text-gray-600 mb-1">ค่าจัดเก็บ (฿)</p>
+          <input type="number" id="stockStorageCost" step="0.01" placeholder="0.00" value="0" class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500" oninput="updateStockLineItems()">
+         </div>
+         <div>
+          <p class="text-xs text-gray-600 mb-1">ค่าอื่นๆ (฿)</p>
+          <input type="number" id="stockOtherCost" step="0.01" placeholder="0.00" value="0" class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500" oninput="updateStockLineItems()">
+         </div>
+        </div>
+        <div class="mt-2">
+         <p class="text-xs text-gray-600 mb-1">หมายเหตุ</p>
+         <input type="text" id="stockCostNote" placeholder="เช่น ค่าแบบเก, ค่าเช่าถัง..." class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+        </div>
+        <div class="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
+         <p class="text-xs font-medium text-gray-700">รวมต้นทุนทั้งหมด: <span id="totalStockCostDisplay" class="font-bold text-blue-600">฿0.00</span></p>
+         <p class="text-xs font-medium text-gray-700 mt-1">รวมลิตร: <span id="totalStockLitersDisplay" class="font-bold text-blue-600">0.00</span> ลิตร</p>
+        </div>
+       </div>
+       <button type="submit" id="stockSubmitBtn" class="w-full btn-success text-white py-3 rounded-lg font-medium transition-all mt-4"> 🛢️ บันทึกการเติมสต๊อก </button>
+      </form>
+     </div>
+     <div class="card-gradient rounded-xl p-4 shadow-sm border">
+      <h2 class="font-semibold text-gray-800 mb-3 flex items-center gap-2"><span class="w-8 h-8 bg-yellow-100 rounded-lg flex items-center justify-center">📦</span> สต๊อกคงเหลือ</h2>
+      <div id="stockSummary" class="space-y-3">
+       <p class="text-gray-400 text-sm text-center py-4">ยังไม่มีถังน้ำมัน</p>
+      </div>
+     </div>
+     <div class="card-gradient rounded-xl p-4 shadow-sm border">
+      <h2 class="font-semibold text-gray-800 mb-3 flex items-center gap-2"><span class="w-8 h-8 bg-indigo-100 rounded-lg flex items-center justify-center">📜</span> ประวัติเติมสต๊อก</h2>
+      <div id="stockHistory" class="space-y-2 max-h-64 overflow-y-auto">
+       <p class="text-gray-400 text-sm text-center py-4">ยังไม่มีประวัติ</p>
+      </div>
+     </div>
+    </section>
+
+    <section id="section-report" class="hidden space-y-4">
+     <div class="card-gradient rounded-xl p-4 shadow-sm border">
+      <h2 class="font-semibold text-gray-800 mb-4 flex items-center gap-2"><span class="w-8 h-8 bg-indigo-100 rounded-lg flex items-center justify-center">🔍</span> ตัวกรองรายงาน</h2>
+      <div class="space-y-3">
+       <div><label class="block text-xs font-medium text-gray-600 mb-1">ประเภทรายงาน</label> <select id="reportType" class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"> <option value="daily">รายวัน</option> <option value="range">ช่วงวันที่</option> <option value="monthly">รายเดือน</option> </select>
+       </div>
+       <div id="filterDaily"><label class="block text-xs font-medium text-gray-600 mb-1">เลือกวัน</label> <input type="date" id="reportDate" class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+       </div>
+       <div><label class="block text-xs font-medium text-gray-600 mb-1">ตัวกรองกะ</label> <select id="reportShift" class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"> <option value="">📅 ทุกกะ</option> <option value="morning">☀️ กะเช้า</option> <option value="evening">🌙 กะบ่าย</option> </select>
+       </div>
+       <div id="filterRange" class="hidden grid grid-cols-2 gap-3">
+        <div><label class="block text-xs font-medium text-gray-600 mb-1">จากวันที่</label> <input type="date" id="reportStartDate" class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+        </div>
+        <div><label class="block text-xs font-medium text-gray-600 mb-1">ถึงวันที่</label> <input type="date" id="reportEndDate" class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+        </div>
+       </div>
+       <div id="filterMonthly" class="hidden"><label class="block text-xs font-medium text-gray-600 mb-1">เลือกเดือน</label> <input type="month" id="reportMonth" class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+       </div>
+       <button onclick="generateReport()" class="w-full btn-primary text-white py-3 rounded-lg font-medium transition-all"> 📊 ดูรายงาน </button>
+      </div>
+     </div>
+     <div id="reportSummary" class="hidden card-gradient rounded-xl p-4 shadow-sm border">
+      <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
+       <h2 class="font-semibold text-gray-800 flex items-center gap-2"><span class="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">📈</span> สรุปรายงาน</h2>
+       <button onclick="exportPDF()" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2"> 📄 ส่งออก PDF </button>
+      </div>
+      <div id="reportPeriod" class="text-sm text-gray-500 mb-4"></div>
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+       <div class="bg-blue-50 rounded-lg p-3 text-center">
+        <p class="text-xs text-gray-500">ยอดขายรวม</p>
+        <p id="reportTotalSales" class="text-lg font-bold text-blue-600">฿0</p>
+       </div>
+       <div class="bg-green-50 rounded-lg p-3 text-center">
+        <p class="text-xs text-gray-500">ลิตรที่ขาย</p>
+        <p id="reportTotalLiters" class="text-lg font-bold text-green-600">0</p>
+       </div>
+       <div class="bg-amber-50 rounded-lg p-3 text-center">
+        <p class="text-xs text-gray-500">ต้นทุนรวม</p>
+        <p id="reportTotalCost" class="text-lg font-bold text-amber-600">฿0</p>
+       </div>
+       <div class="bg-emerald-50 rounded-lg p-3 text-center">
+        <p class="text-xs text-gray-500">กำไรสุทธิ</p>
+        <p id="reportTotalProfit" class="text-lg font-bold text-emerald-600">฿0</p>
+       </div>
+      </div>
+      <div class="mb-4">
+       <h3 class="font-medium text-gray-700 mb-2 text-sm">📊 การใช้น้ำมันแยกตามชนิด</h3>
+       <div id="fuelTypeSummary" class="grid grid-cols-2 md:grid-cols-3 gap-2"></div>
+      </div>
+      <h3 class="font-medium text-gray-700 mb-2 text-sm">📍 รายละเอียดตามหัวจ่าย</h3>
+      <div id="reportNozzleDetails" class="space-y-2"></div>
+     </div>
+    </section>
+
+    <section id="section-settings" class="hidden space-y-4">
+     <div class="card-gradient rounded-xl p-4 shadow-sm border">
+      <h2 class="font-semibold text-gray-800 mb-4 flex items-center gap-2"><span class="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">📝</span> ตั้งค่าระบบ</h2>
+      <form id="systemSettingsForm" class="space-y-4" onsubmit="handleSystemSettingsSubmit(event)">
+       <div>
+        <label class="block text-xs font-medium text-gray-600 mb-1">ชื่อระบบ</label>
+        <input type="text" id="systemName" placeholder="เช่น ปั๊มน้ำมันสะพาน" class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+       </div>
+       <div class="grid grid-cols-2 gap-3">
+        <div>
+         <label class="block text-xs font-medium text-gray-600 mb-1">เวลาเริ่ม กะเช้า (HH:MM)</label>
+         <input type="time" id="morningStartTime" value="06:00" class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+        </div>
+        <div>
+         <label class="block text-xs font-medium text-gray-600 mb-1">เวลาสิ้นสุด กะเช้า (HH:MM)</label>
+         <input type="time" id="morningEndTime" value="18:00" class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+        </div>
+       </div>
+       <div class="grid grid-cols-2 gap-3">
+        <div>
+         <label class="block text-xs font-medium text-gray-600 mb-1">เวลาเริ่ม กะบ่าย (HH:MM)</label>
+         <input type="time" id="eveningStartTime" value="18:00" class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+        </div>
+        <div>
+         <label class="block text-xs font-medium text-gray-600 mb-1">เวลาสิ้นสุด กะบ่าย (HH:MM)</label>
+         <input type="time" id="eveningEndTime" value="06:00" class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+        </div>
+       </div>
+       <button type="submit" class="w-full btn-primary text-white py-3 rounded-lg font-medium transition-all"> 💾 บันทึกการตั้งค่า </button>
+      </form>
+     </div>
+     <div class="card-gradient rounded-xl p-4 shadow-sm border">
+      <h2 class="font-semibold text-gray-800 mb-4 flex items-center gap-2"><span class="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center">⚙️</span> จัดการชนิดน้ำมัน</h2>
+      <form id="fuelTypeForm" class="space-y-3">
+       <div><label class="block text-xs font-medium text-gray-600 mb-1">ชื่อชนิดน้ำมัน</label> <input type="text" id="fuelTypeName" placeholder="เช่น ดีเซล, แก๊สโซฮอล์ 95" class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+       </div>
+       <button type="submit" class="w-full btn-warning text-white py-3 rounded-lg font-medium transition-all"> ➕ เพิ่มชนิดน้ำมัน </button>
+      </form>
+     </div>
+     <div class="card-gradient rounded-xl p-4 shadow-sm border">
+      <h2 class="font-semibold text-gray-800 mb-3 flex items-center gap-2"><span class="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center">🎨</span> รายการชนิดน้ำมัน</h2>
+      <div id="fuelTypeList" class="space-y-2">
+       <p class="text-gray-400 text-sm text-center py-4">ยังไม่มีชนิดน้ำมัน</p>
+      </div>
+     </div>
+     <div class="card-gradient rounded-xl p-4 shadow-sm border">
+      <h2 class="font-semibold text-gray-800 mb-4 flex items-center gap-2"><span class="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center">🛢️</span> เพิ่มถังน้ำมันใหญ่</h2>
+      <form id="tankForm" class="space-y-3">
+       <div><label class="block text-xs font-medium text-gray-600 mb-1">ชื่อถัง</label> <input type="text" id="tankName" placeholder="เช่น ถังดีเซล, ถังแก๊สโซฮอล์ 95" class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+       </div>
+       <div><label class="block text-xs font-medium text-gray-600 mb-1">ชนิดน้ำมัน</label> <select id="tankFuelType" class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"> </select>
+       </div>
+       <button type="submit" class="w-full btn-warning text-white py-3 rounded-lg font-medium transition-all"> 🛢️ เพิ่มถังน้ำมัน </button>
+      </form>
+     </div>
+     <div class="card-gradient rounded-xl p-4 shadow-sm border">
+      <h2 class="font-semibold text-gray-800 mb-3 flex items-center gap-2"><span class="w-8 h-8 bg-yellow-100 rounded-lg flex items-center justify-center">📦</span> รายการถังน้ำมัน</h2>
+      <div id="tankList" class="space-y-2">
+       <p class="text-gray-400 text-sm text-center py-4">ยังไม่มีถังน้ำมัน</p>
+      </div>
+     </div>
+     <div class="card-gradient rounded-xl p-4 shadow-sm border">
+      <h2 class="font-semibold text-gray-800 mb-4 flex items-center gap-2"><span class="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">🔌</span> เพิ่มหัวจ่ายใหม่</h2>
+      <form id="nozzleForm" class="space-y-3">
+       <div><label class="block text-xs font-medium text-gray-600 mb-1">ชื่อหัวจ่าย</label> <input type="text" id="nozzleName" placeholder="เช่น หัวจ่ายที่ 1" class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+       </div>
+       <div><label class="block text-xs font-medium text-gray-600 mb-1">ชนิดน้ำมัน</label> <select id="nozzleFuelType" class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"> </select>
+       </div>
+       <button type="submit" class="w-full btn-success text-white py-3 rounded-lg font-medium transition-all"> 🔌 เพิ่มหัวจ่าย </button>
+      </form>
+     </div>
+     <div class="card-gradient rounded-xl p-4 shadow-sm border">
+      <h2 class="font-semibold text-gray-800 mb-3 flex items-center gap-2"><span class="w-8 h-8 bg-indigo-100 rounded-lg flex items-center justify-center">📌</span> รายการหัวจ่าย</h2>
+      <div id="nozzleList" class="space-y-2">
+       <p class="text-gray-400 text-sm text-center py-4">ยังไม่มีหัวจ่าย</p>
+      </div>
+     </div>
+    </section>
+   </main>
+
+   <!-- Edit Record Modal -->
+   <div id="editRecordModal" class="hidden fixed inset-0 modal-overlay z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-xl p-6 max-w-md w-full shadow-2xl">
+     <h3 class="text-lg font-bold text-gray-800 mb-2">✏️ แก้ไขมิเตอร์</h3>
+     <div id="editRecordInfo" class="p-3 bg-blue-50 rounded-lg border border-blue-200 mb-4">
+      <p id="editRecordNozzle" class="font-semibold text-gray-800"></p>
+      <p id="editRecordFuelType" class="text-xs text-gray-600 mt-1"></p>
+     </div>
+     <form id="editRecordForm" class="space-y-4" onsubmit="handleEditRecordSubmit(event)">
+      <div>
+       <label class="block text-xs font-medium text-gray-600 mb-1">เลขมิเตอร์เริ่มต้น</label>
+       <input type="number" id="editMeterStart" step="0.01" class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required>
+      </div>
+      <div>
+       <label class="block text-xs font-medium text-gray-600 mb-1">เลขมิเตอร์สิ้นสุด</label>
+       <input type="number" id="editMeterEnd" step="0.01" class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required oninput="updateEditCalcLiters()">
+      </div>
+      <div class="p-3 bg-green-50 rounded-lg border border-green-200">
+       <p class="text-xs text-green-700"><strong>ลิตรที่คำนวณได้:</strong> <span id="editCalcLiters" class="font-bold">0.00</span> ลิตร</p>
+      </div>
+      <div class="flex gap-2 pt-4 border-t">
+       <button type="button" onclick="closeEditRecordModal()" class="flex-1 px-4 py-2 border rounded-lg text-gray-600 hover:bg-gray-50 transition-all"> ยกเลิก </button>
+       <button type="submit" class="flex-1 btn-primary text-white px-4 py-2 rounded-lg transition-all"> 💾 บันทึกการแก้ไข </button>
+      </div>
+     </form>
+    </div>
+   </div>
+
+   <div id="deleteModal" class="hidden fixed inset-0 modal-overlay z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-xl p-6 max-w-sm w-full shadow-2xl">
+     <div class="text-center">
+      <div class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+       <span class="text-3xl">⚠️</span>
+      </div>
+      <h3 class="text-lg font-bold text-gray-800 mb-2">ยืนยันการลบ</h3>
+      <p id="deleteModalText" class="text-gray-600 text-sm mb-6"></p>
+      <div class="flex gap-3">
+       <button onclick="closeDeleteModal()" class="flex-1 px-4 py-2 border rounded-lg text-gray-600 hover:bg-gray-50 transition-all"> ยกเลิก </button>
+       <button onclick="confirmDelete()" class="flex-1 btn-danger text-white px-4 py-2 rounded-lg transition-all"> ลบ </button>
+      </div>
+     </div>
+    </div>
+   </div>
+
+   <div id="duplicateWarningModal" class="hidden fixed inset-0 modal-overlay z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-xl p-6 max-w-md w-full shadow-2xl">
+     <div class="text-center">
+      <div class="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
+       <span class="text-3xl">⚠️</span>
+      </div>
+      <h3 class="text-lg font-bold text-gray-800 mb-2">เกิดการบันทึกซ้ำ</h3>
+      <p id="duplicateWarningText" class="text-gray-600 text-sm mb-6"></p>
+      <div class="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-6 max-h-40 overflow-y-auto">
+       <p class="text-xs font-medium text-amber-800 mb-2">📝 รายการที่พบ:</p>
+       <div id="duplicateRecordsList" class="text-xs text-amber-700 space-y-1"></div>
+      </div>
+      <button onclick="closeDuplicateWarning()" class="w-full px-4 py-2 btn-primary text-white rounded-lg transition-all font-medium">
+       เข้าใจแล้ว
+      </button>
+     </div>
+    </div>
+   </div>
+
+   <div id="toast" class="hidden fixed bottom-4 left-1/2 transform -translate-x-1/2 px-6 py-3 rounded-lg shadow-lg z-50 transition-all">
+    <span id="toastMessage"></span>
+   </div>
+
+   <div id="loadingOverlay" class="hidden fixed inset-0 bg-black/30 z-50 flex items-center justify-center">
+    <div class="bg-white rounded-xl p-6 flex items-center gap-3">
+     <div class="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+     <span class="text-gray-700">กำลังบันทึกข้อมูล...</span>
+    </div>
+   </div>
+  </div>
+
+  <script>
+    let allData = [];
+    let fuelTypes = [];
+    let prices = [];
+    let priceHistory = [];
+    let nozzles = [];
+    let records = [];
+    let tanks = [];
+    let stockRecords = [];
+    let currentTab = 'record';
+    let deleteTarget = null;
+    let reportData = null;
+    let stockLineItems = [];
+    let sdkReady = false;
+    let editingRecordId = null;
+    let systemSettings = {
+      systemName: 'ระบบจัดการปั๊มน้ำมัน',
+      morningStartTime: '06:00',
+      morningEndTime: '18:00',
+      eveningStartTime: '18:00',
+      eveningEndTime: '06:00'
+    };
+
+    const dataHandler = {
+      onDataChanged(data) {
+        if (!data) return;
+        allData = data;
+        fuelTypes = allData.filter(d => d.type === 'fuel_type');
+        prices = allData.filter(d => d.type === 'price');
+        priceHistory = allData.filter(d => d.type === 'price_history');
+        nozzles = allData.filter(d => d.type === 'nozzle');
+        records = allData.filter(d => d.type === 'record');
+        tanks = allData.filter(d => d.type === 'tank');
+        stockRecords = allData.filter(d => d.type === 'stock_record');
+        
+        const settings = allData.find(d => d.type === 'system_settings');
+        if (settings) {
+          systemSettings = {
+            systemName: settings.system_name || systemSettings.systemName,
+            morningStartTime: settings.morning_start_time || systemSettings.morningStartTime,
+            morningEndTime: settings.morning_end_time || systemSettings.morningEndTime,
+            eveningStartTime: settings.evening_start_time || systemSettings.eveningStartTime,
+            eveningEndTime: settings.evening_end_time || systemSettings.eveningEndTime
+          };
+          updateSystemDisplay();
+        }
+        
+        updateNozzleMetersForm();
+        updateFuelTypeList();
+        updatePriceList();
+        updatePriceHistory();
+        updatePriceFormFuelType();
+        updateTankFormFuelType();
+        updateNozzleFormFuelType();
+        updateNozzleList();
+        updateTankList();
+        updateTodayStats();
+        updateTodayFuelSummary();
+        updateTodayRecords();
+        updateStockSummary();
+        updateStockHistory();
+        updatePriceFormDisplay();
+        updateHistoryDisplay();
+      }
+    };
+
+    function updateSystemDisplay() {
+      document.getElementById('appTitle').textContent = systemSettings.systemName;
+      document.getElementById('systemName').value = systemSettings.systemName;
+      document.getElementById('morningStartTime').value = systemSettings.morningStartTime;
+      document.getElementById('morningEndTime').value = systemSettings.morningEndTime;
+      document.getElementById('eveningStartTime').value = systemSettings.eveningStartTime;
+      document.getElementById('eveningEndTime').value = systemSettings.eveningEndTime;
+    }
+
+    async function handleSystemSettingsSubmit(e) {
+      e.preventDefault();
+      
+      const systemName = document.getElementById('systemName').value.trim() || 'ระบบจัดการปั๊มน้ำมัน';
+      const morningStart = document.getElementById('morningStartTime').value;
+      const morningEnd = document.getElementById('morningEndTime').value;
+      const eveningStart = document.getElementById('eveningStartTime').value;
+      const eveningEnd = document.getElementById('eveningEndTime').value;
+
+      if (!sdkReady) {
+        showToast('⚠️ ยังไม่พร้อมบันทึก', 'error');
+        return;
+      }
+
+      showLoading(true);
+      try {
+        const existingSettings = allData.find(d => d.type === 'system_settings');
+        
+        if (existingSettings) {
+          const result = await window.dataSdk.update({
+            ...existingSettings,
+            system_name: systemName,
+            morning_start_time: morningStart,
+            morning_end_time: morningEnd,
+            evening_start_time: eveningStart,
+            evening_end_time: eveningEnd
+          });
+
+          if (result && result.isOk) {
+            showToast('✅ บันทึกการตั้งค่าสำเร็จ', 'success');
+          } else {
+            showToast('❌ ไม่สามารถบันทึกได้', 'error');
+          }
+        } else {
+          const result = await window.dataSdk.create({
+            type: 'system_settings',
+            system_name: systemName,
+            morning_start_time: morningStart,
+            morning_end_time: morningEnd,
+            evening_start_time: eveningStart,
+            evening_end_time: eveningEnd
+          });
+
+          if (result && result.isOk) {
+            showToast('✅ บันทึกการตั้งค่าสำเร็จ', 'success');
+          } else {
+            showToast('❌ ไม่สามารถบันทึกได้', 'error');
+          }
+        }
+      } catch (err) {
+        showToast('❌ เกิดข้อผิดพลาด', 'error');
+      }
+      showLoading(false);
+    }
+
+    async function init() {
+      const today = new Date().toISOString().split('T')[0];
+      document.getElementById('recordDate').value = today;
+      document.getElementById('historyDate').value = today;
+      document.getElementById('reportDate').value = today;
+      document.getElementById('reportStartDate').value = today;
+      document.getElementById('reportEndDate').value = today;
+      document.getElementById('reportMonth').value = today.substring(0, 7);
+      document.getElementById('stockDate').value = today;
+      document.getElementById('currentDate').textContent = formatThaiDate(today);
+
+      loadLastDateShift();
+
+      try {
+        const result = await window.dataSdk.init(dataHandler);
+        if (result && result.isOk) {
+          sdkReady = true;
+        }
+      } catch (error) {
+        console.error('SDK init error:', error);
+      }
+
+      setupEventListeners();
+    }
+
+    function setupEventListeners() {
+      document.getElementById('recordForm').addEventListener('submit', handleRecordSubmit);
+      document.getElementById('nozzleForm').addEventListener('submit', handleNozzleSubmit);
+      document.getElementById('tankForm').addEventListener('submit', handleTankSubmit);
+      document.getElementById('stockForm').addEventListener('submit', handleStockSubmit);
+      document.getElementById('fuelTypeForm').addEventListener('submit', handleFuelTypeSubmit);
+      document.getElementById('priceForm').addEventListener('submit', handlePriceSubmit);
+      document.getElementById('systemSettingsForm').addEventListener('submit', handleSystemSettingsSubmit);
+      document.getElementById('reportType').addEventListener('change', handleReportTypeChange);
+      document.getElementById('recordDate').addEventListener('change', updateMetersFromLastRecord);
+      document.getElementById('recordShift').addEventListener('change', updateMetersFromLastRecord);
+      document.getElementById('historyDate').addEventListener('change', updateHistoryDisplay);
+      document.getElementById('historyShift').addEventListener('change', updateHistoryDisplay);
+      document.getElementById('priceFormFuelType').addEventListener('change', updatePriceFormDisplay);
+    }
+
+    function updateHistoryDisplay() {
+      const date = document.getElementById('historyDate').value;
+      const shift = document.getElementById('historyShift').value;
+
+      if (!date) {
+        document.getElementById('historyResults').innerHTML = '<p class="text-gray-400 text-sm text-center py-4">เลือกวันที่เพื่อดูประวัติ</p>';
+        return;
+      }
+
+      let historyRecords = records.filter(r => r.date === date && (!shift || r.shift === shift));
+
+      if (historyRecords.length === 0) {
+        document.getElementById('historyResults').innerHTML = `<p class="text-gray-400 text-sm text-center py-4">ไม่มีรายการ ${formatThaiDate(date)}${shift ? ' (' + (shift === 'morning' ? 'กะเช้า' : 'กะบ่าย') + ')' : ''}</p>`;
+        return;
+      }
+
+      const html = historyRecords.map(r => {
+        const fuelTypeInfo = fuelTypes.find(ft => ft.fuel_type_name === r.fuel_type);
+        return `
+          <div class="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+            <div class="flex items-center justify-between mb-2">
+              <div>
+                <p class="font-medium text-gray-800">${r.nozzle_name}</p>
+                <div class="flex items-center gap-2">
+                  ${fuelTypeInfo ? `<span class="fuel-badge" style="background: ${fuelTypeInfo.color_class};">${r.fuel_type}</span>` : ''}
+                  <span class="text-xs bg-gray-600 text-white px-2 py-1 rounded">${r.shift === 'morning' ? '☀️ เช้า' : '🌙 บ่าย'}</span>
+                </div>
+              </div>
+            </div>
+            <div class="grid grid-cols-4 gap-2 text-center text-sm">
+              <div class="bg-white rounded p-2">
+                <p class="text-gray-500 text-xs">เริ่ม</p>
+                <p class="font-bold text-blue-600">${r.meter_start.toFixed(2)}</p>
+              </div>
+              <div class="bg-white rounded p-2">
+                <p class="text-gray-500 text-xs">จบ</p>
+                <p class="font-bold text-blue-600">${r.meter_end.toFixed(2)}</p>
+              </div>
+              <div class="bg-green-100 rounded p-2">
+                <p class="text-gray-500 text-xs">ลิตร</p>
+                <p class="font-bold text-green-600">${(r.meter_end - r.meter_start).toFixed(2)}</p>
+              </div>
+              <div class="bg-amber-100 rounded p-2">
+                <p class="text-gray-500 text-xs">ยอดขาย</p>
+                <p class="font-bold text-amber-600">฿${r.revenue.toLocaleString('th-TH', {minimumFractionDigits: 0})}</p>
+              </div>
+            </div>
+            <div class="mt-2 flex gap-2">
+              <button type="button" onclick="openEditHistoryRecord('${r.__backendId}')" class="flex-1 text-xs bg-blue-100 hover:bg-blue-200 text-blue-600 px-2 py-1 rounded transition-all">
+                ✏️ แก้ไข
+              </button>
+              <button onclick="deleteRecord('${r.__backendId}')" class="flex-1 text-xs bg-red-100 hover:bg-red-200 text-red-600 px-2 py-1 rounded transition-all">
+                ❌ ลบ
+              </button>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      document.getElementById('historyResults').innerHTML = html;
+    }
+
+    function calculateAverageCostPerLiter(fuelType) {
+      const stockForFuel = stockRecords.filter(r => r.tank_fuel_type === fuelType);
+      
+      if (stockForFuel.length === 0) return 0;
+
+      let totalLitersStock = 0;
+      let totalCostStock = 0;
+
+      stockForFuel.forEach(r => {
+        totalLitersStock += r.liters_added;
+        totalCostStock += r.total_cost_stock;
+      });
+
+      const recordsForFuel = records.filter(r => r.fuel_type === fuelType);
+      let totalLitersSold = 0;
+      recordsForFuel.forEach(r => {
+        totalLitersSold += r.liters_sold;
+      });
+
+      const litersRemaining = Math.max(0, totalLitersStock - totalLitersSold);
+      
+      if (litersRemaining <= 0 || totalLitersStock === 0) return 0;
+
+      const costRemaining = (totalCostStock / totalLitersStock) * litersRemaining;
+      return costRemaining / litersRemaining;
+    }
+
+    function updatePriceFormDisplay() {
+      const fuelType = document.getElementById('priceFormFuelType').value;
+      const avgCost = calculateAverageCostPerLiter(fuelType);
+      
+      if (fuelType && avgCost > 0) {
+        document.getElementById('priceFormCostPriceDisplay').textContent = `คำนวณจากสต๊อก: ฿${avgCost.toFixed(2)}`;
+      } else if (fuelType) {
+        document.getElementById('priceFormCostPriceDisplay').textContent = `ยังไม่มีการเติมสต๊อก`;
+      } else {
+        document.getElementById('priceFormCostPriceDisplay').textContent = `คำนวณจากสต๊อก: ฿0.00`;
+      }
+    }
+
+    function saveLastDateShift(date, shift) {
+      localStorage.setItem('lastRecordDate', date);
+      localStorage.setItem('lastRecordShift', shift);
+    }
+
+    function loadLastDateShift() {
+      const today = new Date().toISOString().split('T')[0];
+      const lastDate = localStorage.getItem('lastRecordDate');
+      const lastShift = localStorage.getItem('lastRecordShift');
+      
+      document.getElementById('recordDate').value = lastDate || today;
+      if (lastShift) document.getElementById('recordShift').value = lastShift;
+    }
+
+    function updateMetersFromLastRecord() {
+      const date = document.getElementById('recordDate').value;
+      const shift = document.getElementById('recordShift').value;
+
+      if (!date || !shift) return;
+
+      saveLastDateShift(date, shift);
+
+      nozzles.forEach(nozzle => {
+        const lastRecordEver = records
+          .filter(r => r.nozzle_name === nozzle.nozzle_name)
+          .sort((a, b) => {
+            const dateCompare = new Date(b.date) - new Date(a.date);
+            if (dateCompare !== 0) return dateCompare;
+            return (b.shift === 'evening' ? 1 : 0) - (a.shift === 'evening' ? 1 : 0);
+          })[0];
+
+        const startInput = document.querySelector(`.meter-input[data-nozzle="${nozzle.__backendId}"][data-type="start"]`);
+        const endInput = document.querySelector(`.meter-input[data-nozzle="${nozzle.__backendId}"][data-type="end"]`);
+        
+        if (startInput && lastRecordEver) {
+          startInput.value = lastRecordEver.meter_end.toFixed(2);
+        }
+        
+        if (endInput) {
+          endInput.value = '';
+          calculateMeterDifference({ target: endInput });
+        }
+      });
+    }
+
+    function updateNozzleMetersForm() {
+      const container = document.getElementById('nozzleMetersContainer');
+      
+      if (nozzles.length === 0) {
+        container.innerHTML = '<p class="text-gray-400 text-xs text-center py-4">กรุณาเพิ่มหัวจ่ายก่อน</p>';
+        return;
+      }
+
+      const date = document.getElementById('recordDate').value;
+      const shift = document.getElementById('recordShift').value;
+
+      container.innerHTML = nozzles.map(nozzle => {
+        const lastRecordEver = records
+          .filter(r => r.nozzle_name === nozzle.nozzle_name)
+          .sort((a, b) => {
+            const dateCompare = new Date(b.date) - new Date(a.date);
+            if (dateCompare !== 0) return dateCompare;
+            return (b.shift === 'evening' ? 1 : 0) - (a.shift === 'evening' ? 1 : 0);
+          })[0];
+
+        const thisShiftRecord = records.find(r => 
+          r.date === date && 
+          r.shift === shift && 
+          r.nozzle_name === nozzle.nozzle_name
+        );
+
+        const defaultStartValue = lastRecordEver ? lastRecordEver.meter_end : 0;
+        const defaultEndValue = thisShiftRecord ? thisShiftRecord.meter_end : 0;
+        const fuelTypeInfo = fuelTypes.find(ft => ft.fuel_type_name === nozzle.fuel_type);
+        const priceInfo = prices.find(p => p.fuel_type === nozzle.fuel_type);
+
+        return `
+          <div class="nozzle-card rounded-lg p-4">
+            <div class="flex items-start justify-between mb-3">
+              <div>
+                <p class="font-medium text-gray-800">${nozzle.nozzle_name}</p>
+                <div class="flex items-center gap-2 mt-1">
+                  <span class="fuel-badge" style="background: ${fuelTypeInfo ? fuelTypeInfo.color_class : 'rgb(254, 243, 199)'};">${nozzle.fuel_type}</span>
+                  ${priceInfo ? `<span class="text-xs text-gray-500">฿${priceInfo.sale_price.toFixed(2)}</span>` : ''}
+                </div>
+              </div>
+              ${thisShiftRecord ? `
+                <button type="button" onclick="openEditRecordModal('${nozzle.__backendId}')" class="text-xs bg-blue-100 hover:bg-blue-200 text-blue-600 px-2 py-1 rounded transition-all">
+                  ✏️ แก้ไข
+                </button>
+              ` : ''}
+            </div>
+            
+            <div class="grid grid-cols-3 gap-2 mb-3">
+              <div>
+                <label class="text-xs text-gray-600 font-medium mb-1 block">เริ่มต้น</label>
+                <input type="number" step="0.01" value="${defaultStartValue}" data-nozzle="${nozzle.__backendId}" data-type="start" class="meter-input w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="0.00">
+              </div>
+              <div>
+                <label class="text-xs text-gray-600 font-medium mb-1 block">สิ้นสุด</label>
+                <input type="number" step="0.01" value="${defaultEndValue}" data-nozzle="${nozzle.__backendId}" data-type="end" class="meter-input w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="0.00" onchange="handleEndInputChange(this)">
+              </div>
+              <div>
+                <label class="text-xs text-gray-600 font-medium mb-1 block">ลิตร</label>
+                <div class="w-full px-3 py-2 bg-blue-50 border border-blue-200 rounded-lg text-sm font-bold text-blue-600 text-center cursor-pointer hover:bg-blue-100" onclick="openEditRecordModal('${nozzle.__backendId}')" title="คลิกเพื่อแก้ไข">
+                  <span class="meter-calc" data-nozzle="${nozzle.__backendId}">${defaultEndValue ? (defaultEndValue - defaultStartValue).toFixed(2) : '0.00'}</span> ✏️
+                </div>
+              </div>
+            </div>
+            
+            ${lastRecordEver ? `
+              <div class="p-2 bg-blue-50 border border-blue-200 rounded-lg text-xs">
+                <p class="text-blue-700"><strong>ล่าสุด:</strong> ${formatThaiDate(lastRecordEver.date)} ${lastRecordEver.shift === 'morning' ? '☀️' : '🌙'}</p>
+                <p class="text-blue-600">จบที่: <strong>${lastRecordEver.meter_end.toFixed(2)}</strong></p>
+              </div>
+            ` : ''}
+          </div>
+        `;
+      }).join('');
+
+      document.querySelectorAll('.meter-input').forEach(input => {
+        input.addEventListener('input', calculateMeterDifference);
+      });
+    }
+
+    function handleEndInputChange(input) {
+      const nozzleId = input.dataset.nozzle;
+      const allEndInputs = Array.from(document.querySelectorAll('.meter-input[data-type="end"]'));
+      const currentIndex = allEndInputs.indexOf(input);
+      
+      if (currentIndex >= 0 && currentIndex < allEndInputs.length - 1) {
+        setTimeout(() => {
+          allEndInputs[currentIndex + 1].focus();
+        }, 100);
+      } else if (currentIndex === allEndInputs.length - 1) {
+        setTimeout(() => {
+          const endValue = parseFloat(input.value) || 0;
+          
+          document.querySelectorAll('.meter-input[data-type="end"]').forEach(endInp => {
+            const nid = endInp.dataset.nozzle;
+            const startInp = document.querySelector(`.meter-input[data-nozzle="${nid}"][data-type="start"]`);
+            
+            const lastRecord = records
+              .filter(r => {
+                const nozzle = nozzles.find(n => n.__backendId === nid);
+                return r.nozzle_name === nozzle?.nozzle_name;
+              })
+              .sort((a, b) => {
+                const dateCompare = new Date(b.date) - new Date(a.date);
+                if (dateCompare !== 0) return dateCompare;
+                return (b.shift === 'evening' ? 1 : 0) - (a.shift === 'evening' ? 1 : 0);
+              })[0];
+
+            if (startInp) {
+              startInp.value = lastRecord ? lastRecord.meter_end.toFixed(2) : '0.00';
+            }
+            endInp.value = '';
+            calculateMeterDifference({ target: endInp });
+          });
+
+          allEndInputs[0].focus();
+        }, 100);
+      }
+    }
+
+    function calculateMeterDifference(e) {
+      const nozzleId = e.target.dataset.nozzle;
+      const startInput = document.querySelector(`.meter-input[data-nozzle="${nozzleId}"][data-type="start"]`);
+      const endInput = document.querySelector(`.meter-input[data-nozzle="${nozzleId}"][data-type="end"]`);
+      const calcDisplay = document.querySelector(`.meter-calc[data-nozzle="${nozzleId}"]`);
+
+      if (!startInput || !endInput) return;
+
+      const start = parseFloat(startInput.value) || 0;
+      const end = parseFloat(endInput.value) || 0;
+      const diff = Math.max(0, end - start);
+
+      calcDisplay.textContent = diff.toFixed(2) + ' ✏️';
+    }
+
+    // Edit Record Functions
+    function openEditRecordModal(nozzleId) {
+      const date = document.getElementById('recordDate').value;
+      const shift = document.getElementById('recordShift').value;
+      
+      const nozzle = nozzles.find(n => n.__backendId === nozzleId);
+      if (!nozzle) return;
+
+      const existingRecord = records.find(r => r.date === date && r.shift === shift && r.nozzle_name === nozzle.nozzle_name);
+      if (!existingRecord) return;
+
+      editingRecordId = existingRecord.__backendId;
+
+      document.getElementById('editRecordNozzle').textContent = nozzle.nozzle_name;
+      document.getElementById('editRecordFuelType').textContent = `${nozzle.fuel_type} • ${formatThaiDate(date)} ${shift === 'morning' ? '☀️' : '🌙'}`;
+      document.getElementById('editMeterStart').value = existingRecord.meter_start.toFixed(2);
+      document.getElementById('editMeterEnd').value = existingRecord.meter_end.toFixed(2);
+      updateEditCalcLiters();
+
+      document.getElementById('editRecordModal').classList.remove('hidden');
+      document.getElementById('editMeterStart').focus();
+    }
+
+    function openEditHistoryRecord(recordId) {
+      const record = allData.find(d => d.__backendId === recordId && d.type === 'record');
+      if (!record) return;
+
+      editingRecordId = recordId;
+
+      const nozzle = nozzles.find(n => n.nozzle_name === record.nozzle_name);
+      document.getElementById('editRecordNozzle').textContent = record.nozzle_name;
+      document.getElementById('editRecordFuelType').textContent = `${record.fuel_type} • ${formatThaiDate(record.date)} ${record.shift === 'morning' ? '☀️' : '🌙'}`;
+      document.getElementById('editMeterStart').value = record.meter_start.toFixed(2);
+      document.getElementById('editMeterEnd').value = record.meter_end.toFixed(2);
+      updateEditCalcLiters();
+
+      document.getElementById('editRecordModal').classList.remove('hidden');
+      document.getElementById('editMeterStart').focus();
+    }
+
+    function closeEditRecordModal() {
+      document.getElementById('editRecordModal').classList.add('hidden');
+      editingRecordId = null;
+      document.getElementById('editRecordForm').reset();
+    }
+
+    function updateEditCalcLiters() {
+      const start = parseFloat(document.getElementById('editMeterStart').value) || 0;
+      const end = parseFloat(document.getElementById('editMeterEnd').value) || 0;
+      const diff = Math.max(0, end - start);
+      document.getElementById('editCalcLiters').textContent = diff.toFixed(2);
+    }
+
+    async function handleEditRecordSubmit(e) {
+      e.preventDefault();
+
+      if (!editingRecordId) return;
+
+      const meterStart = parseFloat(document.getElementById('editMeterStart').value) || 0;
+      const meterEnd = parseFloat(document.getElementById('editMeterEnd').value) || 0;
+
+      if (meterStart >= meterEnd) {
+        showToast('⚠️ เลขมิเตอร์สิ้นสุดต้องมากกว่าเลขเริ่มต้น', 'error');
+        return;
+      }
+
+      const oldRecord = allData.find(d => d.__backendId === editingRecordId);
+      if (!oldRecord) return;
+
+      const litersNew = meterEnd - meterStart;
+      const priceInfo = prices.find(p => p.fuel_type === oldRecord.fuel_type);
+
+      if (!priceInfo) {
+        showToast('❌ ไม่มีราคาสำหรับชนิดน้ำมันนี้', 'error');
+        return;
+      }
+
+      const revenueNew = litersNew * priceInfo.sale_price;
+      const costNew = litersNew * priceInfo.cost_price;
+      const profitNew = revenueNew - costNew;
+
+      if (!sdkReady) {
+        showToast('⚠️ ยังไม่พร้อมบันทึก', 'error');
+        return;
+      }
+
+      showLoading(true);
+      try {
+        const result = await window.dataSdk.update({
+          ...oldRecord,
+          meter_start: meterStart,
+          meter_end: meterEnd,
+          liters_sold: litersNew,
+          revenue: revenueNew,
+          cost: costNew,
+          profit: profitNew
+        });
+
+        if (result && result.isOk) {
+          showToast('✅ แก้ไขมิเตอร์สำเร็จ', 'success');
+          closeEditRecordModal();
+          updateMetersFromLastRecord();
+          updateHistoryDisplay();
+        } else {
+          showToast('❌ ไม่สามารถบันทึกได้', 'error');
+        }
+      } catch (err) {
+        showToast('❌ เกิดข้อผิดพลาด: ' + (err.message || 'ไม่ทราบสาเหตุ'), 'error');
+      }
+      showLoading(false);
+    }
+
+    async function handleFuelTypeSubmit(e) {
+      e.preventDefault();
+      const name = document.getElementById('fuelTypeName').value.trim();
+
+      if (!name) {
+        showToast('⚠️ กรุณากรอกชื่อชนิดน้ำมัน', 'error');
+        return;
+      }
+
+      if (!sdkReady) {
+        showToast('⚠️ ยังไม่พร้อมบันทึก กรุณารอสักครู่', 'error');
+        return;
+      }
+
+      showLoading(true);
+      try {
+        const result = await window.dataSdk.create({
+          type: 'fuel_type',
+          fuel_type_name: name,
+          color_class: 'bg-yellow-50'
+        });
+
+        if (result && result.isOk) {
+          showToast('✅ เพิ่มชนิดน้ำมันสำเร็จ', 'success');
+          document.getElementById('fuelTypeForm').reset();
+        } else {
+          showToast('❌ ไม่สามารถบันทึกได้', 'error');
+        }
+      } catch (err) {
+        showToast('❌ เกิดข้อผิดพลาดในการบันทึก', 'error');
+      }
+      showLoading(false);
+    }
+
+    async function handlePriceSubmit(e) {
+      e.preventDefault();
+      const fuelType = document.getElementById('priceFormFuelType').value;
+      const salePrice = parseFloat(document.getElementById('priceFormSalePrice').value) || 0;
+
+      if (!fuelType || salePrice <= 0) {
+        showToast('⚠️ กรุณากรอกข้อมูลให้ครบถ้วน', 'error');
+        return;
+      }
+
+      const costPrice = calculateAverageCostPerLiter(fuelType);
+
+      if (!sdkReady) {
+        showToast('⚠️ ยังไม่พร้อมบันทึก', 'error');
+        return;
+      }
+
+      const existingPrice = prices.find(p => p.fuel_type === fuelType);
+      
+      showLoading(true);
+      try {
+        if (existingPrice) {
+          const historyResult = await window.dataSdk.create({
+            type: 'price_history',
+            fuel_type: fuelType,
+            old_sale_price: existingPrice.sale_price,
+            old_cost_price: existingPrice.cost_price,
+            new_sale_price: salePrice,
+            new_cost_price: costPrice,
+            changed_at: new Date().toISOString()
+          });
+
+          if (!historyResult || !historyResult.isOk) {
+            showLoading(false);
+            showToast('❌ เกิดข้อผิดพลาดในการบันทึกประวัติ', 'error');
+            return;
+          }
+
+          const result = await window.dataSdk.update({
+            ...existingPrice,
+            sale_price: salePrice,
+            cost_price: costPrice
+          });
+          
+          if (result && result.isOk) {
+            showToast('✅ อัปเดตราคาและบันทึกประวัติสำเร็จ', 'success');
+          } else {
+            showToast('❌ ไม่สามารถบันทึกได้', 'error');
+          }
+        } else {
+          const result = await window.dataSdk.create({
+            type: 'price',
+            fuel_type: fuelType,
+            sale_price: salePrice,
+            cost_price: costPrice
+          });
+
+          if (result && result.isOk) {
+            showToast('✅ เพิ่มราคาสำเร็จ', 'success');
+          } else {
+            showToast('❌ ไม่สามารถบันทึกได้', 'error');
+          }
+        }
+        
+        document.getElementById('priceForm').reset();
+        updatePriceFormDisplay();
+      } catch (err) {
+        showToast('❌ เกิดข้อผิดพลาด', 'error');
+      }
+      showLoading(false);
+    }
+
+    async function handleTankSubmit(e) {
+      e.preventDefault();
+      const name = document.getElementById('tankName').value.trim();
+      const fuelType = document.getElementById('tankFuelType').value;
+
+      if (!name || !fuelType) {
+        showToast('⚠️ กรุณากรอกข้อมูลให้ครบถ้วน', 'error');
+        return;
+      }
+
+      if (!sdkReady) {
+        showToast('⚠️ ยังไม่พร้อมบันทึก', 'error');
+        return;
+      }
+
+      showLoading(true);
+      try {
+        const result = await window.dataSdk.create({
+          type: 'tank',
+          tank_name: name,
+          tank_fuel_type: fuelType
+        });
+
+        if (result && result.isOk) {
+          showToast('✅ เพิ่มถังน้ำมันสำเร็จ', 'success');
+          document.getElementById('tankForm').reset();
+        } else {
+          showToast('❌ ไม่สามารถบันทึกได้', 'error');
+        }
+      } catch (err) {
+        showToast('❌ เกิดข้อผิดพลาด', 'error');
+      }
+      showLoading(false);
+    }
+
+    async function handleNozzleSubmit(e) {
+      e.preventDefault();
+      const name = document.getElementById('nozzleName').value.trim();
+      const fuelType = document.getElementById('nozzleFuelType').value;
+
+      if (!name || !fuelType) {
+        showToast('⚠️ กรุณากรอกข้อมูลให้ครบถ้วน', 'error');
+        return;
+      }
+
+      if (!sdkReady) {
+        showToast('⚠️ ยังไม่พร้อมบันทึก', 'error');
+        return;
+      }
+
+      showLoading(true);
+      try {
+        const result = await window.dataSdk.create({
+          type: 'nozzle',
+          nozzle_name: name,
+          fuel_type: fuelType
+        });
+
+        if (result && result.isOk) {
+          showToast('✅ เพิ่มหัวจ่ายสำเร็จ', 'success');
+          document.getElementById('nozzleForm').reset();
+        } else {
+          showToast('❌ ไม่สามารถบันทึกได้', 'error');
+        }
+      } catch (err) {
+        showToast('❌ เกิดข้อผิดพลาด', 'error');
+      }
+      showLoading(false);
+    }
+
+    async function handleRecordSubmit(e) {
+      e.preventDefault();
+      const date = document.getElementById('recordDate').value;
+      const shift = document.getElementById('recordShift').value;
+
+      if (!date) {
+        showToast('⚠️ กรุณาเลือกวันที่', 'error');
+        return;
+      }
+
+      if (!sdkReady) {
+        showToast('⚠️ ยังไม่พร้อมบันทึก', 'error');
+        return;
+      }
+
+      // Check for duplicate
+      const existingRecordsThisShift = records.filter(r => r.date === date && r.shift === shift);
+      if (existingRecordsThisShift.length > 0) {
+        showDuplicateWarning(date, shift, existingRecordsThisShift);
+        return;
+      }
+
+      let recordsToProcess = [];
+      let hasValidRecords = false;
+
+      document.querySelectorAll('.meter-input[data-type="end"]').forEach(input => {
+        const nozzleId = input.dataset.nozzle;
+        const nozzle = nozzles.find(n => n.__backendId === nozzleId);
+        if (!nozzle) return;
+
+        const startInput = document.querySelector(`.meter-input[data-nozzle="${nozzleId}"][data-type="start"]`);
+        
+        const meterStart = parseFloat(startInput.value) || 0;
+        const meterEnd = parseFloat(input.value) || 0;
+        const lithersDiff = meterEnd - meterStart;
+
+        if (lithersDiff > 0) {
+          hasValidRecords = true;
+          const priceInfo = prices.find(p => p.fuel_type === nozzle.fuel_type);
+          
+          if (!priceInfo) {
+            showToast(`❌ ไม่มีราคา: ${nozzle.fuel_type}`, 'error');
+            return;
+          }
+
+          const revenue = lithersDiff * priceInfo.sale_price;
+          const cost = lithersDiff * priceInfo.cost_price;
+          const profit = revenue - cost;
+
+          recordsToProcess.push({
+            nozzle,
+            liters: lithersDiff,
+            revenue,
+            cost,
+            profit,
+            priceInfo,
+            meterStart,
+            meterEnd
+          });
+        }
+      });
+
+      if (!hasValidRecords || recordsToProcess.length === 0) {
+        showToast('⚠️ กรุณากรอกเลขมิเตอร์ที่มีการเปลี่ยนแปลง (สิ้นสุด > เริ่มต้น)', 'error');
+        return;
+      }
+
+      showLoading(true);
+      try {
+        for (const item of recordsToProcess) {
+          const result = await window.dataSdk.create({
+            type: 'record',
+            date: date,
+            shift: shift,
+            nozzle_name: item.nozzle.nozzle_name,
+            fuel_type: item.nozzle.fuel_type,
+            meter_start: item.meterStart,
+            meter_end: item.meterEnd,
+            liters_sold: item.liters,
+            price_per_liter: item.priceInfo.sale_price,
+            revenue: item.revenue,
+            cost_per_liter: item.priceInfo.cost_price,
+            cost: item.cost,
+            profit: item.profit
+          });
+          
+          if (!result || !result.isOk) {
+            showLoading(false);
+            showToast('❌ เกิดข้อผิดพลาดในการบันทึก', 'error');
+            return;
+          }
+        }
+
+        showLoading(false);
+        showToast(`✅ บันทึก ${recordsToProcess.length} รายการสำเร็จ`, 'success');
+        setTimeout(() => {
+          const today = new Date().toISOString().split('T')[0];
+          if (document.getElementById('recordDate').value !== today) {
+            document.getElementById('recordDate').value = today;
+          }
+          updateMetersFromLastRecord();
+        }, 100);
+      } catch (err) {
+        showLoading(false);
+        showToast('❌ เกิดข้อผิดพลาด: ' + (err.message || 'ไม่ทราบสาเหตุ'), 'error');
+      }
+    }
+
+    function showDuplicateWarning(date, shift, duplicateRecords) {
+      const modal = document.getElementById('duplicateWarningModal');
+      const textEl = document.getElementById('duplicateWarningText');
+      const listEl = document.getElementById('duplicateRecordsList');
+
+      const shiftName = shift === 'morning' ? '☀️ กะเช้า' : '🌙 กะบ่าย';
+      textEl.textContent = `พบว่าเรากรอก ${shiftName} ของวันที่ ${formatThaiDate(date)} แล้ว!`;
+
+      listEl.innerHTML = duplicateRecords.map(r => `
+        <div class="py-1">
+          • ${r.nozzle_name}: ${(r.meter_end - r.meter_start).toFixed(2)} ลิตร (฿${r.revenue.toLocaleString('th-TH', {minimumFractionDigits: 0})})
+        </div>
+      `).join('');
+
+      modal.classList.remove('hidden');
+    }
+
+    function closeDuplicateWarning() {
+      document.getElementById('duplicateWarningModal').classList.add('hidden');
+    }
+
+    async function handleStockSubmit(e) {
+      e.preventDefault();
+      
+      if (stockLineItems.length === 0) {
+        showToast('⚠️ กรุณาเพิ่มรายการน้ำมัน', 'error');
+        return;
+      }
+
+      if (!sdkReady) {
+        showToast('⚠️ ยังไม่พร้อมบันทึก', 'error');
+        return;
+      }
+
+      const date = document.getElementById('stockDate').value;
+      const transportTotal = parseFloat(document.getElementById('stockTransportCostTotal').value) || 0;
+      const storage = parseFloat(document.getElementById('stockStorageCost').value) || 0;
+      const other = parseFloat(document.getElementById('stockOtherCost').value) || 0;
+      const costNote = document.getElementById('stockCostNote').value.trim();
+
+      if (!date) {
+        showToast('⚠️ กรุณาเลือกวันที่', 'error');
+        return;
+      }
+
+      let totalLiters = 0;
+      stockLineItems.forEach(item => {
+        totalLiters += item.liters;
+      });
+
+      if (totalLiters === 0) {
+        showToast('⚠️ กรุณากรอกปริมาณน้ำมัน', 'error');
+        return;
+      }
+
+      const batchId = Date.now().toString();
+      let recordsToAdd = [];
+
+      for (const item of stockLineItems) {
+        const tank = tanks.find(t => t.__backendId === item.tank);
+        if (!tank) continue;
+
+        const transportShare = item.liters > 0 ? (transportTotal / totalLiters) * item.liters : 0;
+        const storageShare = item.liters > 0 ? (storage / totalLiters) * item.liters : 0;
+        const otherShare = item.liters > 0 ? (other / totalLiters) * item.liters : 0;
+        const totalCost = (item.liters * item.costPerLiter) + transportShare + storageShare + otherShare;
+
+        recordsToAdd.push({
+          type: 'stock_record',
+          date: date,
+          tank_name: tank.tank_name,
+          tank_fuel_type: tank.tank_fuel_type,
+          liters_added: item.liters,
+          cost_per_liter_stock: item.costPerLiter,
+          total_cost_stock: totalCost,
+          transport_cost_shared: transportShare,
+          storage_cost: storageShare,
+          other_cost: otherShare,
+          cost_note: costNote,
+          stock_batch_id: batchId
+        });
+      }
+
+      showLoading(true);
+      try {
+        for (const record of recordsToAdd) {
+          const result = await window.dataSdk.create(record);
+          if (!result || !result.isOk) {
+            showLoading(false);
+            showToast('❌ เกิดข้อผิดพลาดในการบันทึก', 'error');
+            return;
+          }
+        }
+
+        showLoading(false);
+        showToast(`✅ บันทึกการเติมสต๊อกสำเร็จ (${recordsToAdd.length} ชนิด)`, 'success');
+        
+        document.getElementById('stockForm').reset();
+        document.getElementById('stockDate').value = new Date().toISOString().split('T')[0];
+        document.getElementById('stockTransportCostTotal').value = '0';
+        document.getElementById('stockStorageCost').value = '0';
+        document.getElementById('stockOtherCost').value = '0';
+        stockLineItems = [];
+        renderStockLineItems();
+        updateStockLineItems();
+      } catch (err) {
+        showLoading(false);
+        showToast('❌ เกิดข้อผิดพลาด', 'error');
+      }
+    }
+
+    function addStockLineItem() {
+      const itemId = Date.now();
+      
+      stockLineItems.push({
+        id: itemId,
+        tank: '',
+        liters: 0,
+        costPerLiter: 0,
+        subtotal: 0
+      });
+
+      renderStockLineItems();
+    }
+
+    function renderStockLineItems() {
+      const container = document.getElementById('stockLineItemsContainer');
+      
+      if (stockLineItems.length === 0) {
+        container.innerHTML = '<p class="text-gray-400 text-xs text-center py-4">ไม่มีรายการ</p>';
+        return;
+      }
+
+      container.innerHTML = stockLineItems.map((item, idx) => `
+        <div class="p-3 border border-gray-200 rounded-lg bg-white">
+          <div class="grid grid-cols-4 gap-2 items-end">
+            <div>
+              <label class="text-xs text-gray-600 font-medium mb-1 block">ถังน้ำมัน</label>
+              <select class="w-full px-2 py-2 border rounded-lg text-sm" onchange="updateLineItemTank(${idx}, this.value)">
+                <option value="">เลือก...</option>
+                ${tanks.map(t => `<option value="${t.__backendId}" ${item.tank === t.__backendId ? 'selected' : ''}>${t.tank_name}</option>`).join('')}
+              </select>
+            </div>
+            <div>
+              <label class="text-xs text-gray-600 font-medium mb-1 block">ลิตร</label>
+              <input type="number" step="0.01" value="${item.liters}" class="w-full px-2 py-2 border rounded-lg text-sm" onchange="updateLineItemLiters(${idx}, this.value)">
+            </div>
+            <div>
+              <label class="text-xs text-gray-600 font-medium mb-1 block">ค่า/ลิตร</label>
+              <input type="number" step="0.01" value="${item.costPerLiter}" class="w-full px-2 py-2 border rounded-lg text-sm" onchange="updateLineItemCost(${idx}, this.value)">
+            </div>
+            <div>
+              <label class="text-xs text-gray-600 font-medium mb-1 block">รวม</label>
+              <div class="w-full px-2 py-2 bg-gray-100 rounded-lg text-sm font-bold text-blue-600">
+                ฿${item.subtotal.toFixed(0)}
+              </div>
+            </div>
+            <div class="col-span-4 flex gap-2 justify-end pt-2 border-t">
+              <button type="button" onclick="removeLineItem(${idx})" class="px-3 py-1 bg-red-100 hover:bg-red-200 text-red-600 rounded-lg text-sm transition-all">
+                ลบ
+              </button>
+            </div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function updateLineItemTank(idx, tankId) {
+      stockLineItems[idx].tank = tankId;
+      updateStockLineItems();
+    }
+
+    function updateLineItemLiters(idx, liters) {
+      stockLineItems[idx].liters = parseFloat(liters) || 0;
+      updateStockLineItems();
+    }
+
+    function updateLineItemCost(idx, cost) {
+      stockLineItems[idx].costPerLiter = parseFloat(cost) || 0;
+      updateStockLineItems();
+    }
+
+    function removeLineItem(idx) {
+      stockLineItems.splice(idx, 1);
+      renderStockLineItems();
+      updateStockLineItems();
+    }
+
+    function updateStockLineItems() {
+      let totalLiters = 0;
+      let totalBaseCost = 0;
+
+      stockLineItems.forEach(item => {
+        const subtotal = item.liters * item.costPerLiter;
+        item.subtotal = subtotal;
+        totalLiters += item.liters;
+        totalBaseCost += subtotal;
+      });
+
+      const transportTotal = parseFloat(document.getElementById('stockTransportCostTotal').value) || 0;
+      const storage = parseFloat(document.getElementById('stockStorageCost').value) || 0;
+      const other = parseFloat(document.getElementById('stockOtherCost').value) || 0;
+
+      let totalWithTransport = totalBaseCost + transportTotal + storage + other;
+
+      document.getElementById('totalStockCostDisplay').textContent = '฿' + totalWithTransport.toLocaleString('th-TH', {minimumFractionDigits: 2});
+      document.getElementById('totalStockLitersDisplay').textContent = totalLiters.toFixed(2);
+
+      renderStockLineItems();
+    }
+
+    function updateFuelTypeList() {
+      const container = document.getElementById('fuelTypeList');
+      if (fuelTypes.length === 0) {
+        container.innerHTML = '<p class="text-gray-400 text-sm text-center py-4">ยังไม่มีชนิดน้ำมัน</p>';
+        return;
+      }
+
+      container.innerHTML = fuelTypes.map(ft => `
+        <div class="p-3 bg-gray-50 rounded-lg flex items-center justify-between">
+          <div class="flex items-center gap-3 flex-1">
+            <div class="w-10 h-10 ${ft.color_class} rounded-lg flex items-center justify-center">
+            </div>
+            <div>
+              <p class="font-medium text-gray-800">${ft.fuel_type_name}</p>
+            </div>
+          </div>
+          <button onclick="deleteFuelType('${ft.__backendId}')" class="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-all">
+            🗑️
+          </button>
+        </div>
+      `).join('');
+    }
+
+    function updatePriceList() {
+      const container = document.getElementById('priceList');
+      if (prices.length === 0) {
+        container.innerHTML = '<p class="text-gray-400 text-sm text-center py-4">ยังไม่มีราคา</p>';
+        return;
+      }
+
+      container.innerHTML = prices.map(p => {
+        const fuelTypeInfo = fuelTypes.find(ft => ft.fuel_type_name === p.fuel_type);
+        const avgCost = calculateAverageCostPerLiter(p.fuel_type);
+        const displayCost = avgCost > 0 ? avgCost : p.cost_price;
+        
+        return `
+          <div class="p-3 bg-gray-50 rounded-lg">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <div class="w-8 h-8 ${fuelTypeInfo ? fuelTypeInfo.color_class : 'bg-gray-200'} rounded-lg"></div>
+                <div>
+                  <p class="font-medium text-gray-800">${p.fuel_type}</p>
+                </div>
+              </div>
+              <div class="text-right">
+                <p class="text-sm font-bold"><span class="text-green-600">ขาย ฿${p.sale_price.toFixed(2)}</span> / <span class="text-amber-600">ต้นทุน ฿${displayCost.toFixed(2)}</span></p>
+                <p class="text-xs text-blue-600 font-bold">กำไร ฿${(p.sale_price - displayCost).toFixed(2)}</p>
+                ${avgCost > 0 ? `<p class="text-xs text-gray-400 mt-1">📦 คำนวณจากสต๊อกจริง</p>` : ''}
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function updatePriceHistory() {
+      const container = document.getElementById('priceHistory');
+      
+      if (priceHistory.length === 0) {
+        container.innerHTML = '<p class="text-gray-400 text-sm text-center py-4">ยังไม่มีประวัติ</p>';
+        return;
+      }
+
+      const sortedHistory = [...priceHistory].sort((a, b) => 
+        new Date(b.changed_at) - new Date(a.changed_at)
+      );
+
+      container.innerHTML = sortedHistory.map(h => {
+        const fuelTypeInfo = fuelTypes.find(ft => ft.fuel_type_name === h.fuel_type);
+        const saleDiff = h.new_sale_price - h.old_sale_price;
+        const costDiff = h.new_cost_price - h.old_cost_price;
+        const saleTrend = saleDiff > 0 ? '📈' : saleDiff < 0 ? '📉' : '➡️';
+        const costTrend = costDiff > 0 ? '📈' : costDiff < 0 ? '📉' : '➡️';
+
+        return `
+          <div class="p-3 bg-gradient-to-r from-indigo-50 to-blue-50 rounded-lg border border-indigo-200">
+            <div class="flex items-start justify-between mb-2 flex-wrap gap-2">
+              <div class="flex items-center gap-2">
+                ${fuelTypeInfo ? `<span class="fuel-badge" style="background: ${fuelTypeInfo.color_class};">${h.fuel_type}</span>` : ''}
+                <span class="text-xs text-gray-500">${formatThaiDateTime(h.changed_at)}</span>
+              </div>
+            </div>
+            <div class="grid grid-cols-2 gap-2 text-xs">
+              <div>
+                <p class="text-gray-600">ราคาขาย: ${saleTrend}</p>
+                <p class="font-bold"><span class="text-gray-500 line-through">฿${h.old_sale_price.toFixed(2)}</span> → <span class="text-green-600">฿${h.new_sale_price.toFixed(2)}</span></p>
+                <p class="text-gray-600 text-xs">${saleDiff > 0 ? '+' : ''}${saleDiff.toFixed(2)} ฿</p>
+              </div>
+              <div>
+                <p class="text-gray-600">ต้นทุน: ${costTrend}</p>
+                <p class="font-bold"><span class="text-gray-500 line-through">฿${h.old_cost_price.toFixed(2)}</span> → <span class="text-amber-600">฿${h.new_cost_price.toFixed(2)}</span></p>
+                <p class="text-gray-600 text-xs">${costDiff > 0 ? '+' : ''}${costDiff.toFixed(2)} ฿</p>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function updatePriceFormFuelType() {
+      const select = document.getElementById('priceFormFuelType');
+      select.innerHTML = '<option value="">เลือกชนิดน้ำมัน...</option>' + fuelTypes.map(ft => {
+        const existingPrice = prices.find(p => p.fuel_type === ft.fuel_type_name);
+        return `<option value="${ft.fuel_type_name}">${ft.fuel_type_name} ${existingPrice ? '(มี)' : ''}</option>`;
+      }).join('');
+    }
+
+    function updateTankFormFuelType() {
+      const select = document.getElementById('tankFuelType');
+      select.innerHTML = fuelTypes.map(ft => 
+        `<option value="${ft.fuel_type_name}">${ft.fuel_type_name}</option>`
+      ).join('');
+    }
+
+    function updateNozzleFormFuelType() {
+      const select = document.getElementById('nozzleFuelType');
+      select.innerHTML = fuelTypes.map(ft => 
+        `<option value="${ft.fuel_type_name}">${ft.fuel_type_name}</option>`
+      ).join('');
+    }
+
+    function updateTankList() {
+      const container = document.getElementById('tankList');
+      if (tanks.length === 0) {
+        container.innerHTML = '<p class="text-gray-400 text-sm text-center py-4">ยังไม่มีถังน้ำมัน</p>';
+        return;
+      }
+
+      container.innerHTML = tanks.map(t => {
+        const fuelTypeInfo = fuelTypes.find(ft => ft.fuel_type_name === t.tank_fuel_type);
+        return `
+          <div class="p-3 bg-gray-50 rounded-lg flex items-center justify-between">
+            <div class="flex items-center gap-3 flex-1">
+              <div class="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center">
+                <span>🛢️</span>
+              </div>
+              <div class="flex-1">
+                <p class="font-medium text-gray-800">${t.tank_name}</p>
+                ${fuelTypeInfo ? `<span class="fuel-badge" style="background: ${fuelTypeInfo.color_class};">${t.tank_fuel_type}</span>` : ''}
+              </div>
+            </div>
+            <button onclick="deleteTank('${t.__backendId}')" class="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-all">
+              🗑️
+            </button>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function updateNozzleList() {
+      const container = document.getElementById('nozzleList');
+      if (nozzles.length === 0) {
+        container.innerHTML = '<p class="text-gray-400 text-sm text-center py-4">ยังไม่มีหัวจ่าย</p>';
+        return;
+      }
+
+      container.innerHTML = nozzles.map(n => {
+        const fuelTypeInfo = fuelTypes.find(ft => ft.fuel_type_name === n.fuel_type);
+        const priceInfo = prices.find(p => p.fuel_type === n.fuel_type);
+        return `
+          <div class="p-3 bg-gray-50 rounded-lg flex items-center justify-between">
+            <div class="flex items-center gap-3 flex-1">
+              <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                <span>🔌</span>
+              </div>
+              <div class="flex-1">
+                <p class="font-medium text-gray-800">${n.nozzle_name}</p>
+                <div class="flex items-center gap-2 mt-1">
+                  ${fuelTypeInfo ? `<span class="fuel-badge" style="background: ${fuelTypeInfo.color_class};">${n.fuel_type}</span>` : ''}
+                  ${priceInfo ? `<span class="text-xs text-gray-500">฿${priceInfo.sale_price.toFixed(2)}</span>` : ''}
+                </div>
+              </div>
+            </div>
+            <button onclick="deleteNozzle('${n.__backendId}')" class="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-all">
+              🗑️
+            </button>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function updateStockSummary() {
+      const container = document.getElementById('stockSummary');
+      
+      if (tanks.length === 0) {
+        container.innerHTML = '<p class="text-gray-400 text-sm text-center py-4">ยังไม่มีถังน้ำมัน</p>';
+        document.getElementById('totalTanks').textContent = '0';
+        document.getElementById('totalStock').textContent = '0 ลิตร';
+        document.getElementById('stockValue').textContent = '฿0';
+        return;
+      }
+
+      const stockData = {};
+      tanks.forEach(tank => {
+        stockData[tank.__backendId] = {
+          name: tank.tank_name,
+          fuelType: tank.tank_fuel_type,
+          totalLiters: 0,
+          totalValue: 0
+        };
+      });
+
+      stockRecords.forEach(r => {
+        const tank = tanks.find(t => t.tank_name === r.tank_name);
+        if (tank && stockData[tank.__backendId]) {
+          stockData[tank.__backendId].totalLiters += r.liters_added;
+          stockData[tank.__backendId].totalValue += r.total_cost_stock;
+        }
+      });
+
+      records.forEach(r => {
+        const tank = tanks.find(t => t.tank_fuel_type === r.fuel_type);
+        if (tank && stockData[tank.__backendId]) {
+          stockData[tank.__backendId].totalLiters -= r.liters_sold;
+        }
+      });
+
+      let totalAllLiters = 0;
+      let totalAllValue = 0;
+
+      const summaryHtml = Object.entries(stockData).map(([id, data]) => {
+        totalAllLiters += data.totalLiters;
+        totalAllValue += data.totalValue;
+        const safeStock = Math.max(0, data.totalLiters);
+        const fuelTypeInfo = fuelTypes.find(ft => ft.fuel_type_name === data.fuelType);
+        return `
+          <div class="stock-card rounded-lg p-4">
+            <div class="flex items-center justify-between mb-2">
+              <p class="font-medium text-gray-800">${data.name}</p>
+              ${fuelTypeInfo ? `<span class="fuel-badge" style="background: ${fuelTypeInfo.color_class};">${data.fuelType}</span>` : ''}
+            </div>
+            <div class="grid grid-cols-2 gap-2">
+              <div>
+                <p class="text-xs text-gray-600">ลิตรคงเหลือ</p>
+                <p class="text-lg font-bold text-blue-600">${safeStock.toFixed(2)}</p>
+              </div>
+              <div>
+                <p class="text-xs text-gray-600">มูลค่า</p>
+                <p class="text-lg font-bold text-amber-600">฿${Math.max(0, data.totalValue).toLocaleString('th-TH', {minimumFractionDigits: 0})}</p>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      container.innerHTML = summaryHtml;
+      document.getElementById('totalTanks').textContent = tanks.length;
+      document.getElementById('totalStock').textContent = Math.max(0, totalAllLiters).toFixed(0) + ' ลิตร';
+      document.getElementById('stockValue').textContent = '฿' + Math.max(0, totalAllValue).toLocaleString('th-TH', {minimumFractionDigits: 0});
+    }
+
+    function updateStockHistory() {
+      const container = document.getElementById('stockHistory');
+      
+      if (stockRecords.length === 0) {
+        container.innerHTML = '<p class="text-gray-400 text-sm text-center py-4">ยังไม่มีประวัติ</p>';
+        return;
+      }
+
+      const sortedRecords = [...stockRecords].sort((a, b) => 
+        new Date(b.timestamp) - new Date(a.timestamp)
+      );
+
+      container.innerHTML = sortedRecords.map(r => {
+        const fuelTypeInfo = fuelTypes.find(ft => ft.fuel_type_name === r.tank_fuel_type);
+        return `
+          <div class="p-3 bg-gray-50 rounded-lg">
+            <div class="flex items-center justify-between mb-2">
+              <div class="flex-1">
+                <p class="font-medium text-gray-800">${r.tank_name}</p>
+                <div class="flex items-center gap-2 mt-1">
+                  ${fuelTypeInfo ? `<span class="fuel-badge" style="background: ${fuelTypeInfo.color_class};">${r.tank_fuel_type}</span>` : ''}
+                  <span class="text-xs text-gray-500">${r.liters_added.toFixed(2)} ลิตร</span>
+                </div>
+                <p class="text-xs text-gray-400 mt-1">${formatThaiDate(r.date)}</p>
+              </div>
+              <div class="text-right flex items-center gap-2">
+                <div>
+                  <p class="font-bold text-amber-600">฿${r.total_cost_stock.toLocaleString('th-TH', {minimumFractionDigits: 0})}</p>
+                  <p class="text-xs text-gray-500">฿${r.cost_per_liter_stock.toFixed(2)}/ลิตร</p>
+                </div>
+                <button onclick="deleteStockRecord('${r.__backendId}')" class="text-xs bg-red-100 text-red-600 hover:bg-red-200 px-2 py-1 rounded transition-all">
+                  ❌
+                </button>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function updateTodayStats() {
+      const today = new Date().toISOString().split('T')[0];
+      const todayRecordsList = records.filter(r => r.date === today);
+      
+      let totalSales = 0;
+      let totalLiters = 0;
+      let totalCost = 0;
+
+      todayRecordsList.forEach(r => {
+        totalSales += r.revenue || 0;
+        totalLiters += r.liters_sold || 0;
+        totalCost += r.cost || 0;
+      });
+
+      document.getElementById('todaySales').textContent = '฿' + totalSales.toLocaleString('th-TH', {minimumFractionDigits: 0});
+      document.getElementById('todayLiters').textContent = totalLiters.toFixed(0) + ' ลิตร';
+      document.getElementById('todayProfit').textContent = '฿' + totalSales.toLocaleString('th-TH', {minimumFractionDigits: 0});
+      document.getElementById('todayTransactions').textContent = todayRecordsList.length;
+    }
+
+    function updateTodayFuelSummary() {
+      const today = new Date().toISOString().split('T')[0];
+      const todayRecordsList = records.filter(r => r.date === today);
+      
+      if (todayRecordsList.length === 0) {
+        document.getElementById('todayFuelSummary').innerHTML = '<p class="text-gray-400 text-sm text-center py-4">ยังไม่มีรายการวันนี้</p>';
+        return;
+      }
+
+      const fuelSummary = {};
+      todayRecordsList.forEach(r => {
+        const fuelType = r.fuel_type;
+        if (!fuelSummary[fuelType]) {
+          fuelSummary[fuelType] = {
+            totalLiters: 0,
+            totalRevenue: 0
+          };
+        }
+        fuelSummary[fuelType].totalLiters += r.liters_sold;
+        fuelSummary[fuelType].totalRevenue += r.revenue;
+      });
+
+      const summaryHtml = Object.entries(fuelSummary).map(([fuelType, data]) => {
+        const fuelTypeInfo = fuelTypes.find(ft => ft.fuel_type_name === fuelType);
+        return `
+          <div class="p-3 bg-gray-50 rounded-lg border-l-4 border-blue-500">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                ${fuelTypeInfo ? `<span class="fuel-badge" style="background: ${fuelTypeInfo.color_class};">${fuelType}</span>` : ''}
+                <span class="text-sm font-bold text-gray-800">${data.totalLiters.toFixed(2)} ลิตร</span>
+              </div>
+              <span class="text-sm font-bold text-green-600">฿${data.totalRevenue.toLocaleString('th-TH', {minimumFractionDigits: 0})}</span>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      document.getElementById('todayFuelSummary').innerHTML = summaryHtml;
+    }
+
+    function updateTodayRecords() {
+      const today = new Date().toISOString().split('T')[0];
+      const todayRecordsList = records.filter(r => r.date === today).sort((a, b) => 
+        new Date(b.timestamp) - new Date(a.timestamp)
+      );
+      
+      const container = document.getElementById('todayRecords');
+      if (todayRecordsList.length === 0) {
+        container.innerHTML = '<p class="text-gray-400 text-sm text-center py-4">ยังไม่มีรายการวันนี้</p>';
+        return;
+      }
+
+      container.innerHTML = todayRecordsList.map(r => {
+        const fuelTypeInfo = fuelTypes.find(ft => ft.fuel_type_name === r.fuel_type);
+        return `
+          <div class="p-3 bg-gray-50 rounded-lg">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-3 flex-1">
+                <div class="w-10 h-10 ${r.shift === 'morning' ? 'bg-yellow-100' : 'bg-indigo-100'} rounded-lg flex items-center justify-center">
+                  <span>${r.shift === 'morning' ? '☀️' : '🌙'}</span>
+                </div>
+                <div>
+                  <p class="font-medium text-gray-800">${r.nozzle_name}</p>
+                  <div class="flex items-center gap-2 mt-1">
+                    ${fuelTypeInfo ? `<span class="fuel-badge" style="background: ${fuelTypeInfo.color_class};">${r.fuel_type}</span>` : ''}
+                    <span class="text-xs text-gray-500">${r.liters_sold.toFixed(2)} ลิตร</span>
+                  </div>
+                </div>
+              </div>
+              <div class="text-right flex items-center gap-2">
+                <div>
+                  <p class="font-bold text-green-600">฿${r.revenue.toLocaleString('th-TH', {minimumFractionDigits: 0})}</p>
+                  <p class="text-xs text-emerald-600">กำไร ฿${r.profit.toLocaleString('th-TH', {minimumFractionDigits: 0})}</p>
+                </div>
+                <button onclick="deleteRecord('${r.__backendId}')" class="text-xs bg-red-100 text-red-600 hover:bg-red-200 px-2 py-1 rounded transition-all">
+                  ❌
+                </button>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function deleteRecord(id) {
+      deleteTarget = { type: 'record', id };
+      document.getElementById('deleteModalText').textContent = 'คุณต้องการลบรายการนี้หรือไม่?';
+      document.getElementById('deleteModal').classList.remove('hidden');
+    }
+
+    function deleteStockRecord(id) {
+      deleteTarget = { type: 'stock_record', id };
+      document.getElementById('deleteModalText').textContent = 'คุณต้องการลบการเติมสต๊อกนี้หรือไม่?';
+      document.getElementById('deleteModal').classList.remove('hidden');
+    }
+
+    function deleteTank(id) {
+      deleteTarget = { type: 'tank', id };
+      document.getElementById('deleteModalText').textContent = 'ลบถังน้ำมันนี้หรือไม่?';
+      document.getElementById('deleteModal').classList.remove('hidden');
+    }
+
+    function deleteNozzle(id) {
+      deleteTarget = { type: 'nozzle', id };
+      document.getElementById('deleteModalText').textContent = 'ลบหัวจ่ายนี้หรือไม่?';
+      document.getElementById('deleteModal').classList.remove('hidden');
+    }
+
+    function deleteFuelType(id) {
+      deleteTarget = { type: 'fuel_type', id };
+      document.getElementById('deleteModalText').textContent = 'ลบชนิดน้ำมันนี้หรือไม่?';
+      document.getElementById('deleteModal').classList.remove('hidden');
+    }
+
+    function closeDeleteModal() {
+      document.getElementById('deleteModal').classList.add('hidden');
+      deleteTarget = null;
+    }
+
+    async function confirmDelete() {
+      if (!deleteTarget) return;
+
+      const item = allData.find(d => d.__backendId === deleteTarget.id);
+      if (!item) {
+        closeDeleteModal();
+        return;
+      }
+
+      showLoading(true);
+      try {
+        const result = await window.dataSdk.delete(item);
+        if (result && result.isOk) {
+          showToast('✅ ลบข้อมูลสำเร็จ', 'success');
+        } else {
+          showToast('❌ ไม่สามารถลบได้', 'error');
+        }
+      } catch (err) {
+        showToast('❌ เกิดข้อผิดพลาด', 'error');
+      }
+      showLoading(false);
+      closeDeleteModal();
+    }
+
+    function switchTab(tab) {
+      ['record', 'price', 'stock', 'report', 'settings'].forEach(t => {
+        document.getElementById(`section-${t}`).classList.toggle('hidden', t !== tab);
+        document.getElementById(`tab-${t}`).classList.toggle('tab-active', t === tab);
+        document.getElementById(`tab-${t}`).classList.toggle('text-gray-600', t !== tab);
+      });
+    }
+
+    function handleReportTypeChange() {
+      const type = document.getElementById('reportType').value;
+      document.getElementById('filterDaily').classList.toggle('hidden', type !== 'daily');
+      document.getElementById('filterRange').classList.toggle('hidden', type !== 'range');
+      document.getElementById('filterMonthly').classList.toggle('hidden', type !== 'monthly');
+    }
+
+    function generateReport() {
+      const type = document.getElementById('reportType').value;
+      const shiftFilter = document.getElementById('reportShift').value;
+      let filteredRecords = [];
+      let periodText = '';
+
+      if (type === 'daily') {
+        const date = document.getElementById('reportDate').value;
+        filteredRecords = records.filter(r => r.date === date && (!shiftFilter || r.shift === shiftFilter));
+        periodText = `รายงานประจำวันที่ ${formatThaiDate(date)}${shiftFilter ? ' (' + (shiftFilter === 'morning' ? 'กะเช้า' : 'กะบ่าย') + ')' : ''}`;
+      } else if (type === 'range') {
+        const start = document.getElementById('reportStartDate').value;
+        const end = document.getElementById('reportEndDate').value;
+        filteredRecords = records.filter(r => r.date >= start && r.date <= end && (!shiftFilter || r.shift === shiftFilter));
+        periodText = `รายงานช่วงวันที่ ${formatThaiDate(start)} - ${formatThaiDate(end)}${shiftFilter ? ' (' + (shiftFilter === 'morning' ? 'กะเช้า' : 'กะบ่าย') + ')' : ''}`;
+      } else {
+        const month = document.getElementById('reportMonth').value;
+        filteredRecords = records.filter(r => r.date.startsWith(month) && (!shiftFilter || r.shift === shiftFilter));
+        periodText = `รายงานประจำเดือน ${formatThaiMonth(month)}${shiftFilter ? ' (' + (shiftFilter === 'morning' ? 'กะเช้า' : 'กะบ่าย') + ')' : ''}`;
+      }
+
+      let totalSales = 0;
+      let totalLiters = 0;
+      let totalCost = 0;
+      
+      filteredRecords.forEach(r => {
+        totalSales += r.revenue || 0;
+        totalLiters += r.liters_sold || 0;
+        totalCost += r.cost || 0;
+      });
+
+      const profit = totalSales - totalCost;
+
+      const fuelUsage = {};
+      filteredRecords.forEach(r => {
+        if (!fuelUsage[r.fuel_type]) {
+          fuelUsage[r.fuel_type] = { liters: 0, sales: 0, cost: 0 };
+        }
+        fuelUsage[r.fuel_type].liters += r.liters_sold;
+        fuelUsage[r.fuel_type].sales += r.revenue;
+        fuelUsage[r.fuel_type].cost += r.cost;
+      });
+
+      reportData = {
+        type,
+        periodText,
+        records: filteredRecords,
+        totalSales,
+        totalLiters,
+        totalCost,
+        profit,
+        fuelUsage
+      };
+
+      document.getElementById('reportSummary').classList.remove('hidden');
+      document.getElementById('reportPeriod').textContent = periodText;
+      document.getElementById('reportTotalSales').textContent = '฿' + totalSales.toLocaleString('th-TH', {minimumFractionDigits: 0});
+      document.getElementById('reportTotalLiters').textContent = totalLiters.toFixed(0) + ' ลิตร';
+      document.getElementById('reportTotalCost').textContent = '฿' + totalCost.toLocaleString('th-TH', {minimumFractionDigits: 0});
+      document.getElementById('reportTotalProfit').textContent = '฿' + profit.toLocaleString('th-TH', {minimumFractionDigits: 0});
+
+      const fuelSummaryHtml = Object.entries(fuelUsage).map(([fuelType, data]) => {
+        const fuelTypeInfo = fuelTypes.find(ft => ft.fuel_type_name === fuelType);
+        return `
+          <div class="bg-gray-50 rounded-lg p-3">
+            <div class="flex items-center justify-between">
+              ${fuelTypeInfo ? `<span class="fuel-badge" style="background: ${fuelTypeInfo.color_class};">${fuelType}</span>` : `<span>${fuelType}</span>`}
+              <div class="text-right text-sm">
+                <p class="font-bold text-blue-600">${data.liters.toFixed(0)} ลิตร</p>
+                <p class="text-xs text-gray-500">ขาย ฿${data.sales.toLocaleString('th-TH', {minimumFractionDigits: 0})}</p>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+      document.getElementById('fuelTypeSummary').innerHTML = fuelSummaryHtml;
+
+      const byNozzle = {};
+      filteredRecords.forEach(r => {
+        const key = r.nozzle_name;
+        if (!byNozzle[key]) {
+          byNozzle[key] = { sales: 0, liters: 0, cost: 0, fuelType: r.fuel_type };
+        }
+        byNozzle[key].sales += r.revenue;
+        byNozzle[key].liters += r.liters_sold;
+        byNozzle[key].cost += r.cost;
+      });
+
+      const detailsHtml = Object.entries(byNozzle).map(([name, data]) => {
+        const fuelTypeInfo = fuelTypes.find(ft => ft.fuel_type_name === data.fuelType);
+        return `
+          <div class="bg-gray-50 rounded-lg p-3">
+            <div class="flex items-center justify-between mb-2">
+              <div class="flex items-center gap-2">
+                <span class="font-medium">${name}</span>
+                ${fuelTypeInfo ? `<span class="fuel-badge" style="background: ${fuelTypeInfo.color_class};">${data.fuelType}</span>` : ''}
+              </div>
+            </div>
+            <div class="grid grid-cols-4 gap-2 text-center text-sm">
+              <div>
+                <p class="text-gray-500">ยอดขาย</p>
+                <p class="font-bold text-blue-600">฿${data.sales.toLocaleString('th-TH', {minimumFractionDigits: 0})}</p>
+              </div>
+              <div>
+                <p class="text-gray-500">ลิตร</p>
+                <p class="font-bold text-green-600">${data.liters.toFixed(0)}</p>
+              </div>
+              <div>
+                <p class="text-gray-500">ต้นทุน</p>
+                <p class="font-bold text-amber-600">฿${data.cost.toLocaleString('th-TH', {minimumFractionDigits: 0})}</p>
+              </div>
+              <div>
+                <p class="text-gray-500">กำไร</p>
+                <p class="font-bold text-emerald-600">฿${(data.sales - data.cost).toLocaleString('th-TH', {minimumFractionDigits: 0})}</p>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      document.getElementById('reportNozzleDetails').innerHTML = detailsHtml || '<p class="text-gray-400 text-sm text-center py-4">ไม่มีข้อมูล</p>';
+    }
+
+    async function exportPDF() {
+      if (!reportData) {
+        showToast('🔍 กรุณาสร้างรายงานก่อน', 'error');
+        return;
+      }
+
+      showLoading(true);
+
+      try {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        let yPos = 15;
+
+        doc.setFontSize(18);
+        doc.setFont(undefined, 'bold');
+        doc.text('รายงานปั๊มน้ำมัน', 105, yPos, { align: 'center' });
+        yPos += 10;
+
+        doc.setFontSize(11);
+        doc.setFont(undefined, 'normal');
+        doc.text(reportData.periodText, 105, yPos, { align: 'center' });
+        yPos += 8;
+
+        doc.setDrawColor(100, 100, 100);
+        doc.line(14, yPos, 196, yPos);
+        yPos += 10;
+
+        doc.setFontSize(12);
+        doc.setFont(undefined, 'bold');
+        doc.text('สรุปรายงาน', 14, yPos);
+        yPos += 8;
+
+        doc.setFontSize(10);
+        doc.setFont(undefined, 'normal');
+        const summaryStats = [
+          `ยอดขายรวม: ฿${reportData.totalSales.toLocaleString('th-TH', {minimumFractionDigits: 2})}`,
+          `ลิตรที่ขายรวม: ${reportData.totalLiters.toFixed(2)} ลิตร`,
+          `ต้นทุนรวม: ฿${reportData.totalCost.toLocaleString('th-TH', {minimumFractionDigits: 2})}`,
+          `กำไรสุทธิ: ฿${reportData.profit.toLocaleString('th-TH', {minimumFractionDigits: 2})}`
+        ];
+
+        summaryStats.forEach(stat => {
+          if (yPos > 270) {
+            doc.addPage();
+            yPos = 15;
+          }
+          doc.text(stat, 14, yPos);
+          yPos += 7;
+        });
+
+        yPos += 5;
+        doc.line(14, yPos, 196, yPos);
+        yPos += 10;
+
+        doc.setFontSize(12);
+        doc.setFont(undefined, 'bold');
+        doc.text('การใช้น้ำมันแยกตามชนิด', 14, yPos);
+        yPos += 8;
+
+        doc.setFontSize(9);
+        doc.setFont(undefined, 'normal');
+        Object.entries(reportData.fuelUsage).forEach(([fuelType, data]) => {
+          if (yPos > 270) {
+            doc.addPage();
+            yPos = 15;
+          }
+          doc.text(`• ${fuelType}: ${data.liters.toFixed(2)} ลิตร - ยอดขาย ฿${data.sales.toLocaleString('th-TH', {minimumFractionDigits: 2})}`, 20, yPos);
+          yPos += 6;
+        });
+
+        yPos += 5;
+        if (yPos > 270) {
+          doc.addPage();
+          yPos = 15;
+        }
+        doc.line(14, yPos, 196, yPos);
+        yPos += 10;
+
+        doc.setFontSize(12);
+        doc.setFont(undefined, 'bold');
+        doc.text('รายละเอียดตามหัวจ่าย', 14, yPos);
+        yPos += 8;
+
+        const tableData = [];
+        const byNozzle = {};
+        reportData.records.forEach(r => {
+          const key = r.nozzle_name;
+          if (!byNozzle[key]) {
+            byNozzle[key] = { sales: 0, liters: 0, cost: 0, fuelType: r.fuel_type };
+          }
+          byNozzle[key].sales += r.revenue;
+          byNozzle[key].liters += r.liters_sold;
+          byNozzle[key].cost += r.cost;
+        });
+
+        Object.entries(byNozzle).forEach(([name, data]) => {
+          tableData.push([
+            name,
+            data.fuelType,
+            data.liters.toFixed(2),
+            '฿' + data.sales.toLocaleString('th-TH', {minimumFractionDigits: 0}),
+            '฿' + data.cost.toLocaleString('th-TH', {minimumFractionDigits: 0}),
+            '฿' + (data.sales - data.cost).toLocaleString('th-TH', {minimumFractionDigits: 0})
+          ]);
+        });
+
+        doc.autoTable({
+          head: [['หัวจ่าย', 'ชนิด', 'ลิตร', 'ยอดขาย', 'ต้นทุน', 'กำไร']],
+          body: tableData,
+          startY: yPos,
+          margin: { left: 14, right: 14 },
+          theme: 'grid',
+          headStyles: { fillColor: [30, 58, 138], textColor: [255, 255, 255], fontStyle: 'bold', halign: 'center', fontSize: 9 },
+          bodyStyles: { textColor: [0, 0, 0], halign: 'right', fontSize: 8 },
+          columnStyles: {
+            0: { halign: 'left' },
+            1: { halign: 'left' }
+          }
+        });
+
+        const fileName = `gas-station-report-${new Date().toISOString().split('T')[0]}.pdf`;
+        doc.save(fileName);
+        showToast('✅ ส่งออก PDF สำเร็จ', 'success');
+      } catch (error) {
+        showToast('❌ เกิดข้อผิดพลาดในการส่งออก', 'error');
+      }
+      showLoading(false);
+    }
+
+    function formatThaiDate(dateStr) {
+      if (!dateStr) return 'ยังไม่มี';
+      const date = new Date(dateStr + 'T00:00:00');
+      const options = { day: 'numeric', month: 'short', year: 'numeric' };
+      return date.toLocaleDateString('th-TH', options);
+    }
+
+    function formatThaiDateTime(isoStr) {
+      if (!isoStr) return 'ยังไม่มี';
+      const date = new Date(isoStr);
+      const options = { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' };
+      return date.toLocaleDateString('th-TH', options);
+    }
+
+    function formatThaiMonth(monthStr) {
+      const [year, month] = monthStr.split('-');
+      const monthNames = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
+      return `${monthNames[parseInt(month) - 1]} ${parseInt(year) + 543}`;
+    }
+
+    function showToast(message, type = 'info') {
+      const toast = document.getElementById('toast');
+      const toastMessage = document.getElementById('toastMessage');
+      toastMessage.textContent = message;
+      toast.className = 'fixed bottom-4 left-1/2 transform -translate-x-1/2 px-6 py-3 rounded-lg shadow-lg z-50 transition-all text-white';
+      
+      let bgClass = 'bg-gray-800';
+      if (type === 'error') bgClass = 'bg-red-500';
+      else if (type === 'success') bgClass = 'bg-green-500';
+      else if (type === 'warning') bgClass = 'bg-amber-500';
+      
+      toast.className = `fixed bottom-4 left-1/2 transform -translate-x-1/2 px-6 py-3 rounded-lg shadow-lg z-50 transition-all text-white ${bgClass}`;
+      toast.classList.remove('hidden');
+      setTimeout(() => toast.classList.add('hidden'), 3000);
+    }
+
+    function showLoading(show) {
+      document.getElementById('loadingOverlay').classList.toggle('hidden', !show);
+    }
+
+    init();
+  </script>
+ <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9cfc4227f4bbd336',t:'MTc3MTQwNDQzMi4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
