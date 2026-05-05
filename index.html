@@ -1,0 +1,1321 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ระบบปั๊มน้ำมัน</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* ════════════════════════════════════════════
+   PASTE THE SAME <style> CONTENT FROM
+   fuel_station_v2.html  (the demo file)
+   ════════════════════════════════════════════
+   The styles are identical — only the <script>
+   section below is different (Firebase instead
+   of localStorage).
+*/
+:root{
+  --bg:#0f1117;--bg2:#161820;--bg3:#1e2030;--bg4:#252840;
+  --border:#2e3150;--border2:#3d4170;
+  --text:#e8eaf6;--text2:#9fa3c0;--text3:#5c6080;
+  --accent:#5c6bc0;--accent2:#7986cb;--glow:rgba(92,107,192,0.15);
+  --green:#66bb6a;--gbg:rgba(102,187,106,0.12);
+  --red:#ef5350;--rbg:rgba(239,83,80,0.12);
+  --amber:#ffa726;--abg:rgba(255,167,38,0.12);
+  --blue:#42a5f5;--bbg:rgba(66,165,245,0.12);
+  --r:10px;--rs:6px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'IBM Plex Sans Thai',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;line-height:1.6;font-size:15px}
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:var(--bg2)}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
+#auth-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:1rem}
+.auth-card{width:100%;max-width:420px;background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:2.5rem}
+.auth-logo{text-align:center;margin-bottom:1.75rem}
+.auth-logo .ico{font-size:2.5rem}
+.auth-logo h1{font-size:1.15rem;font-weight:600;margin-top:4px}
+.auth-logo p{font-size:.78rem;color:var(--text3);margin-top:3px}
+.auth-tabs{display:flex;gap:4px;background:var(--bg3);border-radius:var(--rs);padding:4px;margin-bottom:1.5rem}
+.auth-tab{flex:1;padding:.45rem;border:none;background:transparent;color:var(--text3);border-radius:4px;cursor:pointer;font-size:.82rem;font-family:inherit;transition:all .15s}
+.auth-tab.active{background:var(--bg4);color:var(--text);font-weight:500}
+.auth-panel{display:none}.auth-panel.active{display:block}
+#app{display:none;min-height:100vh}
+.sidebar{position:fixed;left:0;top:0;bottom:0;width:220px;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;z-index:100;overflow-y:auto}
+.sb-logo{padding:1.25rem 1.25rem 1rem;border-bottom:1px solid var(--border)}
+.sb-brand{font-size:.92rem;font-weight:600}
+.sb-sub{font-size:.7rem;color:var(--text3);margin-top:2px;id:sb-station-name}
+.nav-sec{padding:.75rem .75rem .4rem;font-size:.67rem;font-weight:600;text-transform:uppercase;letter-spacing:.1em;color:var(--text3)}
+.nav-i{display:flex;align-items:center;gap:9px;padding:.58rem 1.25rem;font-size:.83rem;color:var(--text2);cursor:pointer;border-radius:var(--rs);margin:0 .5rem 2px;transition:all .15s;border:none;background:none;width:calc(100% - 1rem);text-align:left;font-family:inherit}
+.nav-i:hover{background:var(--bg3);color:var(--text)}
+.nav-i.active{background:var(--glow);color:var(--accent2);border:1px solid rgba(92,107,192,.3)}
+.sb-foot{margin-top:auto;padding:1rem;border-top:1px solid var(--border)}
+.u-row{display:flex;align-items:center;gap:9px;margin-bottom:.75rem}
+.u-av{width:32px;height:32px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:.78rem;font-weight:600;color:#fff;flex-shrink:0}
+.u-name{font-size:.8rem;font-weight:500}
+.role-b{display:inline-block;padding:1px 7px;border-radius:99px;font-size:.65rem;font-weight:600}
+.rb-admin{background:var(--abg);color:var(--amber)}
+.rb-staff{background:var(--bbg);color:var(--blue)}
+.main{margin-left:220px;padding:1.5rem;min-height:100vh}
+.topbar{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:1.5rem;gap:.75rem;flex-wrap:wrap}
+.pg-title{font-size:1.25rem;font-weight:600}.pg-sub{font-size:.78rem;color:var(--text3);margin-top:2px}
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:1.25rem;margin-bottom:1rem}
+.card-t{font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);margin-bottom:1rem}
+.sg{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:.65rem;margin-bottom:1rem}
+.sb{background:var(--bg3);border:1px solid var(--border);border-radius:var(--rs);padding:.9rem}
+.sl{font-size:.7rem;color:var(--text3);margin-bottom:3px}
+.sv{font-size:1.45rem;font-weight:600;font-family:'IBM Plex Mono',monospace}
+.su{font-size:.7rem;color:var(--text3);margin-top:2px}
+.sb.c-blue .sv{color:var(--blue)}.sb.c-green .sv{color:var(--green)}.sb.c-red .sv{color:var(--red)}.sb.c-amber .sv{color:var(--amber)}
+.fg{display:grid;gap:.7rem}.fg2{grid-template-columns:repeat(2,1fr)}.fg3{grid-template-columns:repeat(3,1fr)}
+.fld{display:flex;flex-direction:column;gap:4px}
+.fld label{font-size:.73rem;color:var(--text2);font-weight:500}
+input,select,textarea{padding:.52rem .7rem;background:var(--bg3);border:1px solid var(--border);border-radius:var(--rs);color:var(--text);font-family:inherit;font-size:.83rem;transition:border-color .15s;width:100%}
+input:focus,select:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--glow)}
+input[readonly]{background:var(--bg4);color:var(--text2);cursor:default}
+input.err{border-color:var(--red);box-shadow:0 0 0 3px var(--rbg)}
+.fe{font-size:.68rem;color:var(--red)}
+.btn{display:inline-flex;align-items:center;gap:5px;padding:.5rem 1rem;border-radius:var(--rs);font-size:.8rem;font-weight:500;font-family:inherit;cursor:pointer;border:1px solid var(--border);background:var(--bg3);color:var(--text2);transition:all .15s}
+.btn:hover{background:var(--bg4);color:var(--text);border-color:var(--border2)}
+.btn-p{background:var(--accent);color:#fff;border-color:var(--accent)}.btn-p:hover{background:var(--accent2)}
+.btn-g{background:var(--gbg);color:var(--green);border-color:rgba(102,187,106,.3)}
+.btn-r{background:var(--rbg);color:var(--red);border-color:rgba(239,83,80,.3)}
+.btn-a{background:var(--abg);color:var(--amber);border-color:rgba(255,167,38,.3)}
+.btn-b{background:var(--bbg);color:var(--blue);border-color:rgba(66,165,245,.3)}
+.btn-sm{padding:.28rem .65rem;font-size:.73rem}
+.brow{display:flex;gap:.5rem;align-items:center;flex-wrap:wrap}
+.divider{border:none;border-top:1px solid var(--border);margin:.9rem 0}
+.tag{display:inline-flex;align-items:center;padding:2px 8px;border-radius:99px;font-size:.68rem;font-weight:600;white-space:nowrap}
+.t91{background:rgba(102,187,106,.15);color:#81c784;border:1px solid rgba(102,187,106,.3)}
+.t95{background:var(--bbg);color:var(--blue);border:1px solid rgba(66,165,245,.3)}
+.tdiesel{background:var(--abg);color:var(--amber);border:1px solid rgba(255,167,38,.3)}
+.tmorn{background:rgba(255,167,38,.15);color:#ffb74d}
+.teve{background:rgba(92,107,192,.2);color:var(--accent2)}
+.alert{padding:.7rem .9rem;border-radius:var(--rs);font-size:.8rem;margin-bottom:.9rem;display:flex;align-items:center;gap:7px}
+.al-ok{background:var(--gbg);color:var(--green);border:1px solid rgba(102,187,106,.3)}
+.al-er{background:var(--rbg);color:var(--red);border:1px solid rgba(239,83,80,.3)}
+.al-wn{background:var(--abg);color:var(--amber);border:1px solid rgba(255,167,38,.3)}
+.al-in{background:var(--bbg);color:var(--blue);border:1px solid rgba(66,165,245,.3)}
+.tw{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:.8rem}
+th{text-align:left;padding:.55rem .8rem;background:var(--bg3);color:var(--text3);font-size:.68rem;font-weight:600;text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid var(--border);white-space:nowrap}
+td{padding:.6rem .8rem;border-bottom:1px solid var(--border);color:var(--text);vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:rgba(255,255,255,.018)}
+.mono{font-family:'IBM Plex Mono',monospace}
+.empty{text-align:center;padding:2.5rem 1rem;color:var(--text3);font-size:.82rem}
+.modal-ov{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:1000;display:flex;align-items:center;justify-content:center;padding:1rem}
+.modal{background:var(--bg2);border:1px solid var(--border2);border-radius:14px;padding:1.75rem;width:100%;max-width:560px;max-height:90vh;overflow-y:auto}
+.modal-t{font-size:.95rem;font-weight:600;margin-bottom:1.25rem}
+.modal-f{display:flex;justify-content:flex-end;gap:.5rem;margin-top:1.25rem}
+.meter-rh{display:grid;grid-template-columns:185px 1fr 1fr 105px;gap:7px;padding:0 .7rem .5rem;font-size:.68rem;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.05em}
+.meter-r{display:grid;grid-template-columns:185px 1fr 1fr 105px;gap:7px;align-items:start;padding:.7rem;background:var(--bg3);border:1px solid var(--border);border-radius:var(--rs);margin-bottom:5px}
+.meter-r.has-err{border-color:var(--red)}
+.lm{font-family:'IBM Plex Mono',monospace;font-size:.72rem;color:var(--text3);background:var(--bg4);padding:2px 7px;border-radius:3px;margin-top:4px;display:inline-block}
+.disp-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:.75rem}
+.disp-card{background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:1rem}
+.tabs{display:flex;gap:3px;border-bottom:1px solid var(--border);margin-bottom:1.25rem}
+.tab-b{padding:.5rem .9rem;font-size:.8rem;color:var(--text3);background:none;border:none;border-bottom:2px solid transparent;cursor:pointer;font-family:inherit;transition:all .15s;margin-bottom:-1px}
+.tab-b:hover{color:var(--text)}
+.tab-b.active{color:var(--accent2);border-bottom-color:var(--accent2);font-weight:500}
+.tc{display:none}.tc.active{display:block}
+.stock-adj-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:1rem}
+.stock-card{background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:1.1rem}
+.stock-fuel-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem}
+.stock-val{font-family:'IBM Plex Mono',monospace;font-size:1.6rem;font-weight:600}
+.stock-low{color:var(--red)}.stock-ok{color:var(--green)}.stock-mid{color:var(--amber)}
+.spinner-wrap{display:flex;flex-direction:column;align-items:center;padding:3rem;color:var(--text3);font-size:.85rem}
+.spinner{width:28px;height:28px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;margin-bottom:.75rem}
+@keyframes spin{to{transform:rotate(360deg)}}
+@media print{.sidebar,#no-print{display:none!important}.main{margin-left:0;padding:0}body{background:#fff;color:#000}.card{border:1px solid #ccc;background:#fff}th{background:#f0f0f0;color:#333}}
+@media(max-width:768px){.sidebar{transform:translateX(-100%)}.main{margin-left:0;padding:1rem}.meter-r,.meter-rh{grid-template-columns:1fr 1fr}.fg3{grid-template-columns:1fr 1fr}}
+.cb-row{display:flex;align-items:center;gap:7px;padding:.28rem .5rem;border-radius:5px;cursor:pointer;font-size:.8rem;color:var(--text2);transition:background .12s;user-select:none}
+.cb-row:hover{background:var(--bg3);color:var(--text)}
+.cb-row input[type=checkbox]{width:15px;height:15px;accent-color:var(--accent);cursor:pointer;flex-shrink:0}
+.col-hidden{display:none!important}
+</style>
+</head>
+<body>
+
+<!-- ══ AUTH ══════════════════════════════════════════════ -->
+<div id="auth-wrap">
+<div class="auth-card">
+  <div class="auth-logo">
+    <div class="ico">⛽</div>
+    <h1>ระบบปั๊มน้ำมัน</h1>
+    <p id="auth-station-name">กำลังโหลด...</p>
+  </div>
+  <div class="auth-tabs">
+    <button class="auth-tab active" onclick="switchTab('login')">เข้าสู่ระบบ</button>
+    <button class="auth-tab" onclick="switchTab('register')">สมัครใช้งาน</button>
+  </div>
+  <div class="auth-panel active" id="panel-login">
+    <div class="fld" style="margin-bottom:.75rem">
+      <label>ชื่อผู้ใช้</label>
+      <input type="text" id="li-user" placeholder="ชื่อผู้ใช้" autocomplete="username">
+    </div>
+    <div class="fld" style="margin-bottom:1rem">
+      <label>รหัสผ่าน</label>
+      <input type="password" id="li-pass" placeholder="รหัสผ่าน" onkeydown="if(event.key==='Enter')doLogin()">
+    </div>
+    <button class="btn btn-p" style="width:100%;justify-content:center" onclick="doLogin()" id="li-btn">เข้าสู่ระบบ</button>
+    <div id="li-al" style="display:none;margin-top:.75rem"></div>
+  </div>
+  <div class="auth-panel" id="panel-register">
+    <div class="alert al-in" style="margin-bottom:.75rem">📋 กรอกข้อมูลเพื่อขอสมัคร — Admin จะอนุมัติให้ใช้งาน</div>
+    <div class="fg fg2">
+      <div class="fld"><label>ชื่อ-นามสกุล</label><input type="text" id="rg-name" placeholder="ชื่อ นามสกุล"></div>
+      <div class="fld"><label>ชื่อผู้ใช้ (EN)</label><input type="text" id="rg-user" placeholder="somchai01"></div>
+      <div class="fld"><label>รหัสผ่าน (4+ ตัว)</label><input type="password" id="rg-pass" placeholder="รหัสผ่าน"></div>
+      <div class="fld"><label>เบอร์โทร</label><input type="text" id="rg-tel" placeholder="08X-XXX-XXXX"></div>
+    </div>
+    <button class="btn btn-p" style="width:100%;justify-content:center;margin-top:.75rem" onclick="doRegister()">ส่งคำขอสมัคร</button>
+    <div id="rg-al" style="display:none;margin-top:.75rem"></div>
+  </div>
+</div>
+</div>
+
+<!-- ══ APP ════════════════════════════════════════════════ -->
+<div id="app">
+<aside class="sidebar">
+  <div class="sb-logo">
+    <div class="sb-brand">⛽ <span id="sb-station">ปั๊มน้ำมัน</span></div>
+    <div class="sb-sub" id="sb-sub">-</div>
+  </div>
+  <div class="nav-sec">หลัก</div>
+  <button class="nav-i active" onclick="nav('dash')" id="nav-dash"><span>📊</span>แดชบอร์ด</button>
+  <button class="nav-i" onclick="nav('meter')" id="nav-meter"><span>📝</span>บันทึกมิเตอร์</button>
+  <button class="nav-i" onclick="nav('stock')" id="nav-stock"><span>🛢️</span>สต็อกน้ำมัน</button>
+  <button class="nav-i" onclick="nav('history')" id="nav-history"><span>🕒</span>ประวัติ</button>
+  <div id="admin-nav" style="display:none">
+    <div class="nav-sec">Admin</div>
+    <button class="nav-i" onclick="nav('report')" id="nav-report"><span>📄</span>รายงาน & กำไร</button>
+    <button class="nav-i" onclick="nav('dispensers')" id="nav-dispensers"><span>⚙️</span>ตั้งค่าหัวจ่าย</button>
+    <button class="nav-i" onclick="nav('users')" id="nav-users"><span>👥</span>จัดการผู้ใช้</button>
+    <button class="nav-i" onclick="nav('settings')" id="nav-settings"><span>🏪</span>ตั้งค่าปั๊ม</button>
+    <button class="nav-i" onclick="nav('fbguide')" id="nav-fbguide"><span>🔥</span>Firebase Setup</button>
+  </div>
+  <div class="sb-foot">
+    <div class="u-row">
+      <div class="u-av" id="sb-av">?</div>
+      <div><div class="u-name" id="sb-name">-</div><span class="role-b" id="sb-rb">-</span></div>
+    </div>
+    <button class="btn btn-r btn-sm" style="width:100%;justify-content:center" onclick="doLogout()">ออกจากระบบ</button>
+  </div>
+</aside>
+
+<main class="main">
+
+  <!-- DASHBOARD -->
+  <div id="page-dash" class="pc">
+    <div class="topbar">
+      <div><div class="pg-title">แดชบอร์ด</div><div class="pg-sub" id="dash-date"></div></div>
+      <div class="brow" id="no-print">
+        <div class="fld"><label style="font-size:.7rem;color:var(--text3)">จากวันที่</label><input type="date" id="df" style="width:auto"></div>
+        <div class="fld"><label style="font-size:.7rem;color:var(--text3)">ถึงวันที่</label><input type="date" id="dt" style="width:auto"></div>
+        <div class="fld"><label style="font-size:.7rem;color:var(--text3)">หัวจ่าย</label><select id="d-disp" style="width:auto"><option value="">ทั้งหมด</option></select></div>
+        <button class="btn btn-p btn-sm" onclick="loadDash()" style="margin-top:18px">ดูข้อมูล</button>
+        <button class="btn btn-g btn-sm" onclick="nav('meter')" style="margin-top:18px">+ บันทึกกะ</button>
+      </div>
+    </div>
+    <div class="sg" id="dash-stats"></div>
+    <div class="card">
+      <div class="tabs">
+        <button class="tab-b active" onclick="dTab('summary',this)">สรุปตามกะ</button>
+        <button class="tab-b" onclick="dTab('bydisp',this)">แยกหัวจ่าย</button>
+        <button class="tab-b" onclick="dTab('byfuel',this)">แยกน้ำมัน</button>
+      </div>
+      <div class="tc active" id="tc-summary"><div class="tw"><table><thead><tr><th>วันที่</th><th>กะ</th><th>พนักงาน</th><th>91 (ล.)</th><th>95 (ล.)</th><th>ดีเซล (ล.)</th><th>รวม (ล.)</th><th id="th-rev0">ยอดขาย</th></tr></thead><tbody id="dt-sum"></tbody></table></div></div>
+      <div class="tc" id="tc-bydisp"><div class="tw"><table><thead><tr><th>หัวจ่าย</th><th>ประเภท</th><th>รวมจ่าย (ล.)</th><th id="th-rev1">ยอดขาย</th><th>กะเช้า (ล.)</th><th>กะเย็น (ล.)</th></tr></thead><tbody id="dt-disp"></tbody></table></div></div>
+      <div class="tc" id="tc-byfuel"><div class="tw"><table><thead><tr><th>ประเภท</th><th>รวมจ่าย (ล.)</th><th id="th-rev2">ยอดขาย</th><th id="th-cost">ต้นทุน</th><th id="th-profit">กำไร</th></tr></thead><tbody id="dt-fuel"></tbody></table></div></div>
+    </div>
+  </div>
+
+  <!-- METER -->
+  <div id="page-meter" class="pc" style="display:none">
+    <div class="topbar"><div><div class="pg-title">บันทึกมิเตอร์</div><div class="pg-sub">กรอกเลขมิเตอร์แต่ละหัวจ่าย</div></div></div>
+    <div id="meter-al" style="display:none"></div>
+    <div class="card">
+      <div class="card-t">ข้อมูลกะ</div>
+      <div class="fg fg3">
+        <div class="fld"><label>วันที่</label><input type="date" id="m-date"></div>
+        <div class="fld"><label>กะ</label><select id="m-shift"><option value="morning">กะเช้า (06:00–18:00)</option><option value="evening">กะเย็น (18:00–06:00)</option></select></div>
+        <div class="fld"><label>พนักงาน</label><input type="text" id="m-staff" placeholder="ชื่อผู้บันทึก"></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-t">เลขมิเตอร์</div>
+      <div id="meter-rows"><div class="spinner-wrap"><div class="spinner"></div>กำลังโหลดหัวจ่าย...</div></div>
+      <hr class="divider">
+      <div class="fld" style="max-width:400px"><label>หมายเหตุ</label><input type="text" id="m-note" placeholder="เช่น เติมน้ำมันถัง"></div>
+      <div class="brow" style="margin-top:1rem;justify-content:flex-end">
+        <button class="btn btn-sm" onclick="clearMeter()">ล้างข้อมูล</button>
+        <button class="btn btn-p" onclick="saveMeter()" id="save-meter-btn">💾 บันทึกกะ</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- STOCK -->
+  <div id="page-stock" class="pc" style="display:none">
+    <div class="topbar"><div><div class="pg-title">สต็อกน้ำมัน</div><div class="pg-sub">ตรวจสอบและปรับสต็อก</div></div></div>
+    <div class="stock-adj-grid" id="stock-cards"></div>
+    <div id="admin-stock" style="display:none">
+      <div class="card">
+        <div class="card-t">จัดการสต็อก</div>
+        <div class="tabs">
+          <button class="tab-b active" onclick="sTab('recv',this)">📥 รับน้ำมัน</button>
+          <button class="tab-b" onclick="sTab('adj',this)">🔧 ปรับสต็อก</button>
+          <button class="tab-b" onclick="sTab('test',this)">🧪 บีบทดสอบ</button>
+        </div>
+        <div class="tc active" id="stc-recv">
+          <div id="recv-al" style="display:none"></div>
+          <div class="fg fg3">
+            <div class="fld"><label>วันที่รับ</label><input type="date" id="rv-date"></div>
+            <div class="fld"><label>ประเภทน้ำมัน</label><select id="rv-fuel"><option value="91">เบนซิน 91</option><option value="95">เบนซิน 95</option><option value="diesel">ดีเซล</option></select></div>
+            <div class="fld"><label>จำนวน (ลิตร)</label><input type="number" id="rv-qty" placeholder="0.00" step="0.01" min="0"></div>
+            <div class="fld"><label>ราคาทุน (บ./ล.)</label><input type="number" id="rv-cost" placeholder="0.00" step="0.01"></div>
+            <div class="fld"><label>เลขที่ใบส่งของ</label><input type="text" id="rv-inv" placeholder="INV-XXXX"></div>
+            <div class="fld"><label>ซัพพลายเออร์</label><input type="text" id="rv-sup" placeholder="บริษัท..."></div>
+          </div>
+          <div class="brow" style="margin-top:.9rem;justify-content:flex-end"><button class="btn btn-p" onclick="saveRecv()">+ บันทึกรับน้ำมัน</button></div>
+        </div>
+        <div class="tc" id="stc-adj">
+          <div id="adj-al" style="display:none"></div>
+          <div class="alert al-in">⚠️ ใช้เมื่อตรวจวัดถังจริงแล้วพบว่าไม่ตรงกับในระบบ</div>
+          <div class="fg fg3" style="margin-top:.75rem">
+            <div class="fld"><label>วันที่ตรวจ</label><input type="date" id="adj-date"></div>
+            <div class="fld"><label>ประเภทน้ำมัน</label><select id="adj-fuel" onchange="calcAdj()"><option value="91">เบนซิน 91</option><option value="95">เบนซิน 95</option><option value="diesel">ดีเซล</option></select></div>
+            <div class="fld"><label>สต็อกจริงที่วัดได้ (ลิตร)</label><input type="number" id="adj-real" placeholder="0.00" step="0.01" min="0" oninput="calcAdj()"></div>
+          </div>
+          <div id="adj-diff" style="display:none;margin-top:.75rem"></div>
+          <div class="fld" style="max-width:400px;margin-top:.75rem"><label>สาเหตุ</label><input type="text" id="adj-note" placeholder="เช่น น้ำมันระเหย, วัดใหม่"></div>
+          <div class="brow" style="margin-top:.9rem;justify-content:flex-end"><button class="btn btn-a" onclick="saveAdj()">🔧 ยืนยันปรับสต็อก</button></div>
+        </div>
+        <div class="tc" id="stc-test">
+          <div id="test-al" style="display:none"></div>
+          <div class="alert al-wn">🧪 บีบทดสอบหัวจ่าย — เลือกได้ว่าจะหักสต็อกหรือเติมกลับ</div>
+          <div class="fg fg3" style="margin-top:.75rem">
+            <div class="fld"><label>วันที่ทดสอบ</label><input type="date" id="tp-date"></div>
+            <div class="fld"><label>หัวจ่าย</label><select id="tp-disp"></select></div>
+            <div class="fld"><label>ปริมาณที่บีบ (ลิตร)</label><input type="number" id="tp-qty" placeholder="0.00" step="0.01" min="0"></div>
+          </div>
+          <div class="fg fg2" style="margin-top:.7rem">
+            <div class="fld"><label>เอาน้ำมันคืนหรือเปล่า?</label><select id="tp-ret"><option value="no">ไม่คืน (หักสต็อกถาวร)</option><option value="yes">คืนกลับ (สต็อกไม่เปลี่ยน)</option></select></div>
+            <div class="fld"><label>หมายเหตุ</label><input type="text" id="tp-note" placeholder="เช่น ทดสอบหลังซ่อม"></div>
+          </div>
+          <div class="brow" style="margin-top:.9rem;justify-content:flex-end"><button class="btn btn-b" onclick="saveTest()">🧪 บันทึกการทดสอบ</button></div>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-t">ประวัติการเคลื่อนไหวสต็อก</div>
+      <div class="tw"><table><thead><tr><th>วันที่</th><th>ประเภท</th><th>รายการ</th><th>จำนวน (ล.)</th><th>คงเหลือหลัง</th><th>หมายเหตุ</th></tr></thead><tbody id="slog-tb"></tbody></table></div>
+    </div>
+  </div>
+
+  <!-- HISTORY -->
+  <div id="page-history" class="pc" style="display:none">
+    <div class="topbar">
+      <div><div class="pg-title">ประวัติการบันทึก</div></div>
+      <div class="brow" id="no-print">
+        <input type="date" id="hf" style="width:auto">
+        <span style="color:var(--text3);font-size:.8rem">ถึง</span>
+        <input type="date" id="ht" style="width:auto">
+        <select id="h-disp" style="width:auto"><option value="">ทุกหัวจ่าย</option></select>
+        <button class="btn btn-sm" onclick="loadHistory()">กรอง</button>
+      </div>
+    </div>
+    <div class="card"><div class="tw">
+      <table><thead><tr><th>วันที่</th><th>กะ</th><th>พนักงาน</th><th>หัวจ่าย</th><th>ประเภท</th><th>มิเตอร์ต้น</th><th>มิเตอร์ปลาย</th><th>จ่าย (ล.)</th><th>หมายเหตุ</th><th></th></tr></thead>
+      <tbody id="hist-tb"></tbody></table>
+    </div></div>
+  </div>
+
+  <!-- REPORT -->
+  <div id="page-report" class="pc" style="display:none">
+    <div class="topbar">
+      <div><div class="pg-title">รายงาน & กำไร</div><div class="pg-sub">เฉพาะ Admin</div></div>
+      <div class="brow" id="no-print">
+        <button class="btn btn-g btn-sm" onclick="exportCSV()">📊 Export Excel</button>
+        <button class="btn btn-sm" onclick="window.print()">🖨️ พิมพ์</button>
+      </div>
+    </div>
+    <div class="card" id="no-print">
+      <div class="fg fg3">
+        <div class="fld"><label>จากวันที่</label><input type="date" id="rf"></div>
+        <div class="fld"><label>ถึงวันที่</label><input type="date" id="rt"></div>
+        <div class="fld" style="flex-direction:row;align-items:flex-end"><button class="btn btn-p" onclick="genReport()">สร้างรายงาน</button></div>
+      </div>
+    </div>
+
+    <!-- ── COLUMN SELECTOR ───────────────────────────────── -->
+    <div class="card" id="no-print" style="margin-bottom:1rem">
+      <div class="card-t" style="margin-bottom:.6rem">🖨️ เลือกฟิลด์ที่จะแสดงในรายงาน</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:.4rem .9rem;margin-bottom:.8rem">
+        <!-- Summary section -->
+        <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text3);grid-column:1/-1;margin-top:.3rem">ส่วนสรุปยอด</div>
+        <label class="cb-row"><input type="checkbox" id="col-totalRev" checked onchange="updateColVisibility()"><span>💰 รายได้รวม</span></label>
+        <label class="cb-row"><input type="checkbox" id="col-totalCost" checked onchange="updateColVisibility()"><span>🧾 ต้นทุนรวม</span></label>
+        <label class="cb-row"><input type="checkbox" id="col-totalProfit" checked onchange="updateColVisibility()"><span>📈 กำไรรวม</span></label>
+        <label class="cb-row"><input type="checkbox" id="col-margin" checked onchange="updateColVisibility()"><span>% กำไร</span></label>
+        <!-- Table columns -->
+        <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text3);grid-column:1/-1;margin-top:.5rem">คอลัมน์ตารางแยกน้ำมัน</div>
+        <label class="cb-row"><input type="checkbox" id="col-liters" checked onchange="updateColVisibility()"><span>🛢️ ปริมาณ (ลิตร)</span></label>
+        <label class="cb-row"><input type="checkbox" id="col-price" checked onchange="updateColVisibility()"><span>🏷️ ราคาขาย/ลิตร</span></label>
+        <label class="cb-row"><input type="checkbox" id="col-rev" checked onchange="updateColVisibility()"><span>💵 รายได้ต่อประเภท</span></label>
+        <label class="cb-row"><input type="checkbox" id="col-cost" checked onchange="updateColVisibility()"><span>📦 ต้นทุนต่อประเภท</span></label>
+        <label class="cb-row"><input type="checkbox" id="col-profit" checked onchange="updateColVisibility()"><span>✅ กำไรต่อประเภท</span></label>
+        <label class="cb-row"><input type="checkbox" id="col-profitPct" checked onchange="updateColVisibility()"><span>% กำไรต่อประเภท</span></label>
+        <!-- Detail table -->
+        <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text3);grid-column:1/-1;margin-top:.5rem">คอลัมน์ตารางรายละเอียด</div>
+        <label class="cb-row"><input type="checkbox" id="col-staff" checked onchange="updateColVisibility()"><span>👤 พนักงาน</span></label>
+        <label class="cb-row"><input type="checkbox" id="col-dispName" checked onchange="updateColVisibility()"><span>⛽ ชื่อหัวจ่าย</span></label>
+        <label class="cb-row"><input type="checkbox" id="col-detRev" checked onchange="updateColVisibility()"><span>💵 ยอดขาย (รายแถว)</span></label>
+        <label class="cb-row"><input type="checkbox" id="col-detProfit" checked onchange="updateColVisibility()"><span>✅ กำไร (รายแถว)</span></label>
+      </div>
+      <div class="brow" style="gap:.5rem">
+        <button class="btn btn-sm btn-b" onclick="setPreset('accounting')">📋 โหมดบัญชี (ซ่อนกำไร)</button>
+        <button class="btn btn-sm btn-g" onclick="setPreset('full')">📊 โหมดเต็ม (แสดงทั้งหมด)</button>
+        <button class="btn btn-sm btn-a" onclick="setPreset('stock')">🛢️ โหมดสต็อกเท่านั้น</button>
+      </div>
+    </div>
+
+    <div id="report-out"></div>
+  </div>
+
+  <!-- DISPENSERS -->
+  <div id="page-dispensers" class="pc" style="display:none">
+    <div class="topbar"><div><div class="pg-title">ตั้งค่าหัวจ่าย</div></div><button class="btn btn-p btn-sm" onclick="openDM()">+ เพิ่มหัวจ่าย</button></div>
+    <div class="disp-grid" id="disp-grid"></div>
+  </div>
+
+  <!-- USERS -->
+  <div id="page-users" class="pc" style="display:none">
+    <div class="topbar"><div><div class="pg-title">จัดการผู้ใช้</div></div></div>
+    <div id="user-al" style="display:none"></div>
+    <div class="card"><div class="card-t">รออนุมัติ</div>
+      <div class="tw"><table><thead><tr><th>ชื่อ</th><th>ชื่อผู้ใช้</th><th>เบอร์โทร</th><th>วันที่</th><th></th></tr></thead><tbody id="pending-tb"></tbody></table></div>
+    </div>
+    <div class="card"><div class="card-t">ผู้ใช้ทั้งหมด</div>
+      <div class="tw"><table><thead><tr><th>ชื่อ</th><th>ชื่อผู้ใช้</th><th>สิทธิ์</th><th>สถานะ</th><th></th></tr></thead><tbody id="all-users-tb"></tbody></table></div>
+    </div>
+  </div>
+
+  <!-- SETTINGS -->
+  <div id="page-settings" class="pc" style="display:none">
+    <div class="topbar"><div><div class="pg-title">ตั้งค่าปั๊ม</div></div></div>
+    <div id="cfg-al" style="display:none"></div>
+    <div class="card"><div class="card-t">ข้อมูลปั๊ม</div>
+      <div class="fg fg2">
+        <div class="fld"><label>ชื่อปั๊ม</label><input type="text" id="cfg-name"></div>
+        <div class="fld"><label>TAX ID</label><input type="text" id="cfg-tax"></div>
+      </div>
+      <div class="fg fg2" style="margin-top:.7rem">
+        <div class="fld"><label>ที่อยู่</label><input type="text" id="cfg-addr"></div>
+        <div class="fld"><label>เบอร์โทร</label><input type="text" id="cfg-tel"></div>
+      </div>
+    </div>
+    <div class="card"><div class="card-t">ราคาขาย (บาท/ลิตร)</div>
+      <div class="alert al-in" style="margin-bottom:.9rem">💡 เปลี่ยนเมื่อราคาน้ำมันเปลี่ยน — รายการเก่าจะยังใช้ราคาเดิม รายการใหม่จะใช้ราคาใหม่</div>
+      <div class="fg fg3">
+        <div class="fld"><label>เบนซิน 91</label><input type="number" id="px-91" step="0.01"></div>
+        <div class="fld"><label>เบนซิน 95</label><input type="number" id="px-95" step="0.01"></div>
+        <div class="fld"><label>ดีเซล</label><input type="number" id="px-d" step="0.01"></div>
+      </div>
+    </div>
+    <div class="card"><div class="card-t">ราคาทุนเฉลี่ย (บาท/ลิตร)</div>
+      <div class="fg fg3">
+        <div class="fld"><label>เบนซิน 91</label><input type="number" id="cx-91" step="0.01"></div>
+        <div class="fld"><label>เบนซิน 95</label><input type="number" id="cx-95" step="0.01"></div>
+        <div class="fld"><label>ดีเซล</label><input type="number" id="cx-d" step="0.01"></div>
+      </div>
+      <div class="brow" style="margin-top:.9rem;justify-content:flex-end"><button class="btn btn-p" onclick="saveSettings()">💾 บันทึก</button></div>
+    </div>
+  </div>
+  <!-- FIREBASE SETUP GUIDE -->
+  <div id="page-fbguide" class="pc" style="display:none">
+    <div class="topbar"><div><div class="pg-title">🔥 คู่มือตั้งค่า Firebase (Free Tier)</div><div class="pg-sub">ทำตามขั้นตอนนี้ก่อนใช้งานระบบครั้งแรก</div></div></div>
+
+    <div class="card" style="border-left:3px solid var(--amber)">
+      <div style="display:flex;align-items:center;gap:.6rem;margin-bottom:.4rem"><span style="font-size:1.1rem">⚠️</span><b>ก่อนเริ่ม: ต้องมีบัญชี Google</b></div>
+      <div style="font-size:.82rem;color:var(--text2)">Firebase ใช้ Google Account ไปที่ <a href="https://console.firebase.google.com" target="_blank" style="color:var(--accent2)">console.firebase.google.com</a> และ Login ด้วย Google Account ของคุณก่อน</div>
+    </div>
+
+    <style>
+      .guide-step{counter-increment:step;background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:1.1rem 1.25rem;margin-bottom:.75rem;position:relative;padding-left:3.5rem}
+      .guide-step::before{content:counter(step);position:absolute;left:1rem;top:1.1rem;width:1.7rem;height:1.7rem;border-radius:50%;background:var(--accent);color:#fff;font-size:.78rem;font-weight:700;display:flex;align-items:center;justify-content:center;line-height:1}
+      .guide-title{font-size:.92rem;font-weight:600;margin-bottom:.4rem}
+      .guide-body{font-size:.8rem;color:var(--text2);line-height:1.65}
+      .guide-body b{color:var(--text)}
+      .guide-body code{background:var(--bg4);padding:1px 6px;border-radius:3px;font-family:'IBM Plex Mono',monospace;font-size:.78rem;color:var(--amber)}
+      .guide-img-hint{display:inline-flex;align-items:center;gap:5px;background:var(--bg3);border:1px solid var(--border2);border-radius:5px;padding:3px 9px;font-size:.73rem;color:var(--text3);margin-top:.5rem}
+      .guide-section{font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--text3);margin:.5rem 0 .3rem;padding-top:.75rem;border-top:1px solid var(--border)}
+      .code-block{background:var(--bg4);border:1px solid var(--border);border-radius:var(--rs);padding:.7rem .9rem;font-family:'IBM Plex Mono',monospace;font-size:.75rem;color:var(--amber);margin-top:.6rem;white-space:pre-wrap;line-height:1.6;position:relative}
+      .copy-btn{position:absolute;top:.45rem;right:.5rem;background:var(--bg3);border:1px solid var(--border2);border-radius:4px;color:var(--text3);font-size:.68rem;padding:2px 8px;cursor:pointer;font-family:inherit}
+      .copy-btn:hover{color:var(--text);background:var(--bg4)}
+      .tag-ok{background:var(--gbg);color:var(--green);border:1px solid rgba(102,187,106,.3);padding:2px 8px;border-radius:99px;font-size:.7rem;font-weight:600;display:inline-block}
+      .tag-warn{background:var(--abg);color:var(--amber);border:1px solid rgba(255,167,38,.3);padding:2px 8px;border-radius:99px;font-size:.7rem;font-weight:600;display:inline-block}
+      body{counter-reset:step}
+    </style>
+
+    <div class="guide-section">ส่วนที่ 1 — สร้าง Firebase Project</div>
+
+    <div class="guide-step">
+      <div class="guide-title">เปิด Firebase Console</div>
+      <div class="guide-body">
+        ไปที่ <a href="https://console.firebase.google.com" target="_blank" style="color:var(--accent2)">console.firebase.google.com</a> แล้วกด <b>"Create a project"</b> (หรือ "Add project")
+        <div class="guide-img-hint">📌 ปุ่มสีน้ำเงินกลางหน้าจอ หรือมุมขวาบน</div>
+      </div>
+    </div>
+
+    <div class="guide-step">
+      <div class="guide-title">ตั้งชื่อโปรเจกต์</div>
+      <div class="guide-body">
+        พิมพ์ชื่อ เช่น <code>mypump-station</code> (ใช้ตัวเล็กและ - ได้) → กด <b>Continue</b><br>
+        <span class="tag-warn">💡 ชื่อนี้จะกลายเป็น URL ของ database ด้วย ไม่ต้องสวยงาม</span>
+      </div>
+    </div>
+
+    <div class="guide-step">
+      <div class="guide-title">ปิด Google Analytics (ไม่จำเป็น)</div>
+      <div class="guide-body">
+        หน้า "Google Analytics for your Firebase project" → <b>toggle ปิด</b> (ไม่จำเป็นสำหรับระบบนี้) → กด <b>Create project</b><br>
+        รอ ~30 วินาที จนขึ้น "Your new project is ready" → กด <b>Continue</b>
+      </div>
+    </div>
+
+    <div class="guide-section">ส่วนที่ 2 — เปิดใช้งาน Authentication</div>
+
+    <div class="guide-step">
+      <div class="guide-title">เข้าเมนู Authentication</div>
+      <div class="guide-body">
+        ในหน้า Project Overview → เมนูซ้าย → <b>Build → Authentication</b> → กด <b>"Get started"</b>
+      </div>
+    </div>
+
+    <div class="guide-step">
+      <div class="guide-title">เปิด Email/Password Provider</div>
+      <div class="guide-body">
+        Tab <b>"Sign-in method"</b> → คลิก <b>Email/Password</b> → เปิด toggle <b>"Email/Password"</b> (อันบนสุด) → กด <b>Save</b><br>
+        <span class="tag-ok">✓ ไม่ต้องเปิด Passwordless / Email link</span>
+      </div>
+    </div>
+
+    <div class="guide-section">ส่วนที่ 3 — สร้าง Firestore Database</div>
+
+    <div class="guide-step">
+      <div class="guide-title">เข้าเมนู Firestore Database</div>
+      <div class="guide-body">
+        เมนูซ้าย → <b>Build → Firestore Database</b> → กด <b>"Create database"</b>
+      </div>
+    </div>
+
+    <div class="guide-step">
+      <div class="guide-title">เลือก Mode และ Location</div>
+      <div class="guide-body">
+        • Security rules: เลือก <b>"Start in production mode"</b> (เราจะตั้ง rules เองใน Step ถัดไป)<br>
+        • Location: เลือก <b>asia-southeast1 (Singapore)</b> → ใกล้ไทยที่สุด ความหน่วงต่ำ<br>
+        → กด <b>Enable</b> รอ ~1 นาที
+        <div class="guide-img-hint">⚡ ถ้าไม่มี singapore ให้เลือก asia-east1 (Taiwan)</div>
+      </div>
+    </div>
+
+    <div class="guide-step">
+      <div class="guide-title">ตั้ง Security Rules</div>
+      <div class="guide-body">
+        Tab <b>"Rules"</b> → ลบโค้ดเก่าออกทั้งหมด → วางโค้ดนี้แทน:
+        <div class="code-block" id="rules-code">rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Settings — อ่านได้ทุกคน, เขียนได้เฉพาะ Admin
+    match /settings/{doc} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    // Users — อ่านได้เฉพาะเจ้าของ/Admin
+    match /users/{uid} {
+      allow read: if request.auth != null
+        && (request.auth.uid == uid
+          || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin');
+      allow write: if request.auth != null
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    // Pending registrations
+    match /pendingUsers/{doc} {
+      allow read, delete: if request.auth != null
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+      allow create: if true; // anyone can register
+    }
+
+    // Dispensers
+    match /dispensers/{doc} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    // Meter entries — staff write, admin full
+    match /meterEntries/{doc} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.active == true;
+      allow update, delete: if request.auth != null
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    // Stock
+    match /stock/{doc} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.active == true;
+    }
+
+    match /stockLog/{doc} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.active == true;
+    }
+
+    match /fuelReceives/{doc} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.active == true;
+    }
+  }
+}</button>
+        <button class="copy-btn" onclick="copyCode('rules-code',this)">คัดลอก</button>
+        </div>
+        → กด <b>Publish</b>
+        <div class="guide-img-hint" style="margin-top:.5rem">🔒 Rules เหล่านี้บังคับว่า Staff ดูข้อมูลได้ แต่แก้ไขตั้งค่าไม่ได้</div>
+      </div>
+    </div>
+
+    <div class="guide-section">ส่วนที่ 4 — ลงทะเบียน Web App & ได้ Config</div>
+
+    <div class="guide-step">
+      <div class="guide-title">เพิ่ม Web App</div>
+      <div class="guide-body">
+        กลับไปหน้า <b>Project Overview</b> (กด 🏠 ซ้ายบน) → กดไอคอน <b>&lt;/&gt;</b> (Web)<br>
+        ใส่ชื่อ App Nickname เช่น <code>pump-web</code> → <b>ไม่ต้อง</b>เลือก Firebase Hosting → กด <b>Register app</b>
+      </div>
+    </div>
+
+    <div class="guide-step">
+      <div class="guide-title">คัดลอก firebaseConfig</div>
+      <div class="guide-body">
+        จะเห็น code snippet ประมาณนี้ — <b>คัดลอกเฉพาะ object</b> ข้างใน <code>const firebaseConfig = { ... }</code>:
+        <div class="code-block">const firebaseConfig = {
+  apiKey: "AIzaSyXXXXXXXXXXXXXXXXXXX",
+  authDomain: "mypump-station.firebaseapp.com",
+  projectId: "mypump-station",
+  storageBucket: "mypump-station.appspot.com",
+  messagingSenderId: "123456789012",
+  appId: "1:123456789012:web:abcdefabcdef"
+};</div>
+        → กด <b>Continue to console</b>
+        <div class="guide-img-hint">📋 เก็บ config นี้ไว้ — จะนำไปแปะในโค้ด HTML</div>
+      </div>
+    </div>
+
+    <div class="guide-section">ส่วนที่ 5 — แก้ไขไฟล์ HTML ให้ใช้ Firebase ของคุณ</div>
+
+    <div class="guide-step">
+      <div class="guide-title">เปิดไฟล์ HTML และหา firebaseConfig</div>
+      <div class="guide-body">
+        เปิดไฟล์ <code>fuel_station_v3.html</code> ด้วย Notepad / VS Code → <b>Ctrl+F</b> ค้นหา <code>YOUR_API_KEY</code><br>
+        จะเห็น block:
+        <div class="code-block">const firebaseConfig = {
+  apiKey:            "YOUR_API_KEY",
+  authDomain:        "YOUR_PROJECT_ID.firebaseapp.com",
+  ...</div>
+        → <b>แทนที่ทั้ง block</b> ด้วย config ที่คัดลอกมาจาก Step ก่อน
+      </div>
+    </div>
+
+    <div class="guide-section">ส่วนที่ 6 — สร้าง Admin Account คนแรก</div>
+
+    <div class="guide-step">
+      <div class="guide-title">สร้าง Admin ผ่าน Firebase Console โดยตรง</div>
+      <div class="guide-body">
+        เพราะยังไม่มี user ใดในระบบ ต้องสร้าง Admin ด้วยมือใน Console<br><br>
+        <b>1.</b> เมนูซ้าย → <b>Authentication</b> → Tab <b>"Users"</b> → กด <b>"Add user"</b><br>
+        <b>2.</b> Email: <code>admin@pump.local</code> | Password: ตั้งรหัสผ่านที่แข็งแรง → <b>Add user</b><br>
+        <b>3.</b> คัดลอก <b>User UID</b> ที่ปรากฏในตาราง (ประมาณ 28 ตัวอักษร)<br><br>
+        <b>4.</b> เมนูซ้าย → <b>Firestore Database</b> → กด <b>"+ Start collection"</b><br>
+        &nbsp;&nbsp;Collection ID: <code>users</code> → Next<br>
+        &nbsp;&nbsp;Document ID: <b>วาง UID ที่คัดลอกมา</b><br>
+        &nbsp;&nbsp;เพิ่ม Fields:
+        <div class="code-block">name        (string)  →  "ผู้จัดการ"
+username    (string)  →  "admin"
+email       (string)  →  "admin@pump.local"
+role        (string)  →  "admin"
+active      (boolean) →  true</div>
+        → กด <b>Save</b>
+        <div class="guide-img-hint">🔑 ตอนนี้ login ได้แล้ว ด้วย username: admin และรหัสผ่านที่ตั้งไว้</div>
+      </div>
+    </div>
+
+    <div class="guide-section">ส่วนที่ 7 — ทดสอบและเปิดใช้งาน</div>
+
+    <div class="guide-step">
+      <div class="guide-title">เปิดไฟล์ HTML ในเบราว์เซอร์</div>
+      <div class="guide-body">
+        ดับเบิ้ลคลิกไฟล์ <code>fuel_station_v3.html</code> → เปิดใน Chrome / Edge<br>
+        Login ด้วย username <code>admin</code> และรหัสผ่านที่ตั้งไว้<br>
+        <span class="tag-ok">✓ ถ้าเข้าได้ — Firebase ทำงานปกติ!</span>
+      </div>
+    </div>
+
+    <div class="guide-step">
+      <div class="guide-title">ตั้งค่าปั๊มและเพิ่มหัวจ่าย</div>
+      <div class="guide-body">
+        เมนูซ้าย → <b>ตั้งค่าปั๊ม</b> → กรอกชื่อปั๊ม, ราคาขาย, ราคาทุน → บันทึก<br>
+        เมนูซ้าย → <b>ตั้งค่าหัวจ่าย</b> → เพิ่มหัวจ่ายทีละตัว<br>
+        จากนั้นพนักงานสามารถ <b>สมัครใช้งาน</b> ผ่านหน้า Login แล้ว Admin อนุมัติได้เลย
+      </div>
+    </div>
+
+    <div class="card" style="border-left:3px solid var(--green);margin-top:1rem">
+      <div style="font-weight:600;margin-bottom:.5rem">🎁 Firebase Free Tier ให้อะไรบ้าง?</div>
+      <div style="font-size:.8rem;color:var(--text2);line-height:1.8">
+        • <b>Firestore:</b> อ่าน 50,000 ครั้ง / วัน | เขียน 20,000 ครั้ง / วัน | เก็บข้อมูล 1 GB<br>
+        • <b>Authentication:</b> ไม่จำกัด (MAU สูงสุด 50,000 คน/เดือน)<br>
+        • <b>Bandwidth:</b> 10 GB / เดือน<br>
+        <span class="tag-ok" style="margin-top:.5rem;display:inline-block">✓ ปั๊มน้ำมัน 1 สาขา ใช้ฟรีได้ตลอด ไม่ถึงขีดจำกัดแน่นอน</span>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<!-- MODALS -->
+<div class="modal-ov" id="edit-modal" style="display:none">
+  <div class="modal">
+    <div class="modal-t">✏️ แก้ไขข้อมูลมิเตอร์</div>
+    <input type="hidden" id="em-id">
+    <div class="fg fg2">
+      <div class="fld"><label>วันที่</label><input type="date" id="em-date"></div>
+      <div class="fld"><label>กะ</label><select id="em-shift"><option value="morning">กะเช้า</option><option value="evening">กะเย็น</option></select></div>
+      <div class="fld"><label>พนักงาน</label><input type="text" id="em-staff"></div>
+      <div class="fld"><label>หัวจ่าย</label><input type="text" id="em-disp" readonly></div>
+      <div class="fld"><label>มิเตอร์ต้น</label><input type="number" id="em-s" step="0.01" oninput="calcEm()"></div>
+      <div class="fld"><label>มิเตอร์ปลาย</label><input type="number" id="em-e" step="0.01" oninput="calcEm()"><span class="fe" id="em-err" style="display:none">ปลายต้องมากกว่าต้น</span></div>
+    </div>
+    <div class="fld" style="margin-top:.7rem"><label>จ่าย (ลิตร)</label><input type="number" id="em-sold" readonly></div>
+    <div class="fld" style="margin-top:.7rem"><label>หมายเหตุ</label><input type="text" id="em-note"></div>
+    <div class="modal-f"><button class="btn" onclick="closeM('edit-modal')">ยกเลิก</button><button class="btn btn-p" onclick="saveEdit()">💾 บันทึก</button></div>
+  </div>
+</div>
+<div class="modal-ov" id="disp-modal" style="display:none">
+  <div class="modal">
+    <div class="modal-t" id="dm-title">เพิ่มหัวจ่าย</div>
+    <div class="fg fg2">
+      <div class="fld"><label>ชื่อหัวจ่าย</label><input type="text" id="dm-name" placeholder="หัวจ่าย 1A"></div>
+      <div class="fld"><label>ประเภทน้ำมัน</label><select id="dm-fuel"><option value="91">เบนซิน 91</option><option value="95">เบนซิน 95</option><option value="diesel">ดีเซล</option></select></div>
+      <div class="fld"><label>รหัส</label><input type="text" id="dm-code" placeholder="D01"></div>
+      <div class="fld"><label>สถานะ</label><select id="dm-st"><option value="1">ใช้งาน</option><option value="0">ปิดใช้</option></select></div>
+    </div>
+    <div class="modal-f"><button class="btn" onclick="closeM('disp-modal')">ยกเลิก</button><button class="btn btn-p" onclick="saveDisp()">บันทึก</button></div>
+  </div>
+</div>
+
+<!-- ══ FIREBASE SDK ════════════════════════════════════════ -->
+<script type="module">
+import { initializeApp }          from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getAuth, signInWithEmailAndPassword, signOut, createUserWithEmailAndPassword, onAuthStateChanged }
+  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { getFirestore, collection, doc, getDoc, getDocs, addDoc, updateDoc, deleteDoc,
+  query, where, orderBy, limit, serverTimestamp, setDoc, onSnapshot }
+  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+// ╔══════════════════════════════════════════════════════╗
+// ║  🔥  แทนที่ค่าด้านล่างด้วย Firebase Config ของคุณ  ║
+// ╚══════════════════════════════════════════════════════╝
+const firebaseConfig = {
+  apiKey: "AIzaSyDGnjX615RgmPVx-OPaq6fPLKBB5LQMIog",
+  authDomain: "fuelstation-3e4a5.firebaseapp.com",
+  projectId: "fuelstation-3e4a5",
+  storageBucket: "fuelstation-3e4a5.firebasestorage.app",
+  messagingSenderId: "491166042145",
+  appId: "1:491166042145:web:9eb12e6e235631164abb60",
+  measurementId: "G-RBRMYSZ78M"
+};
+// ════════════════════════════════════════════════════════
+
+const fbApp  = initializeApp(firebaseConfig);
+const auth   = getAuth(fbApp);
+const db     = getFirestore(fbApp);
+
+// ── global state ────────────────────────────────────────
+let CU = null, CFG = {}, DISPS = [], editDispId = null;
+
+// ── helpers ──────────────────────────────────────────────
+const fmt = (n,d=2) => n==null||isNaN(+n)?'—':Number(n).toLocaleString('th-TH',{minimumFractionDigits:d,maximumFractionDigits:d});
+const ftag = f => ({91:'<span class="tag t91">91</span>',95:'<span class="tag t95">95</span>',diesel:'<span class="tag tdiesel">ดีเซล</span>'}[f]||f);
+const stag = s => s==='morning'?'<span class="tag tmorn">เช้า</span>':'<span class="tag teve">เย็น</span>';
+const today = () => new Date().toISOString().split('T')[0];
+const daysAgo = n => new Date(Date.now()-n*86400000).toISOString().split('T')[0];
+function al(id,msg,type='ok'){const e=document.getElementById(id);if(!e)return;e.className='alert al-'+type;e.textContent=msg;e.style.display='flex';if(type==='ok')setTimeout(()=>e.style.display='none',3500)}
+const closeM = id => document.getElementById(id).style.display='none';
+window.closeM = closeM;
+
+// ── AUTH ─────────────────────────────────────────────────
+window.switchTab = t => {
+  document.querySelectorAll('.auth-tab').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.auth-panel').forEach(p=>p.classList.remove('active'));
+  event.target.classList.add('active');
+  document.getElementById('panel-'+t).classList.add('active');
+};
+
+window.doLogin = async () => {
+  const username = document.getElementById('li-user').value.trim();
+  const pass     = document.getElementById('li-pass').value;
+  if(!username||!pass){al('li-al','กรุณากรอกชื่อผู้ใช้และรหัสผ่าน','er');return}
+  const btn = document.getElementById('li-btn');
+  btn.disabled = true; btn.textContent = 'กำลังเข้าสู่ระบบ...';
+  try {
+    // look up email by username
+    const q = query(collection(db,'users'), where('username','==',username));
+    const snap = await getDocs(q);
+    if(snap.empty) throw new Error('not-found');
+    const userData = snap.docs[0].data();
+    if(!userData.active) throw new Error('disabled');
+    const email = userData.email || username+'@pump.local';
+    await signInWithEmailAndPassword(auth, email, pass);
+  } catch(e) {
+    const msg = e.message==='not-found'?'ไม่พบชื่อผู้ใช้นี้':e.message==='disabled'?'บัญชีนี้ถูกปิดใช้งาน':'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง';
+    al('li-al', msg, 'er');
+    btn.disabled=false; btn.textContent='เข้าสู่ระบบ';
+  }
+};
+
+window.doRegister = async () => {
+  const name = document.getElementById('rg-name').value.trim();
+  const user = document.getElementById('rg-user').value.trim().toLowerCase();
+  const pass = document.getElementById('rg-pass').value;
+  const tel  = document.getElementById('rg-tel').value.trim();
+  if(!name||!user||!pass||pass.length<4){al('rg-al','กรุณากรอกข้อมูลให้ครบ (รหัสผ่านอย่างน้อย 4 ตัว)','er');return}
+  // check username unique
+  const snap = await getDocs(query(collection(db,'users'), where('username','==',user)));
+  const snapP = await getDocs(query(collection(db,'pendingUsers'), where('username','==',user)));
+  if(!snap.empty||!snapP.empty){al('rg-al','ชื่อผู้ใช้นี้ถูกใช้แล้ว','er');return}
+  await addDoc(collection(db,'pendingUsers'),{name,username:user,pass,tel,requestedAt:serverTimestamp()});
+  al('rg-al',`ส่งคำขอเรียบร้อย! รอ Admin อนุมัติ ชื่อผู้ใช้: ${user}`,'ok');
+  document.getElementById('rg-name').value='';document.getElementById('rg-user').value='';document.getElementById('rg-pass').value='';document.getElementById('rg-tel').value='';
+};
+
+onAuthStateChanged(auth, async user => {
+  if(user){
+    const snap = await getDoc(doc(db,'users',user.uid));
+    if(!snap.exists()||!snap.data().active){await signOut(auth);al('li-al','บัญชีนี้ยังไม่ได้รับการอนุมัติ','er');return}
+    CU = {uid:user.uid, ...snap.data()};
+    document.getElementById('auth-wrap').style.display='none';
+    document.getElementById('app').style.display='block';
+    document.getElementById('sb-name').textContent=CU.name||CU.username;
+    document.getElementById('sb-av').textContent=(CU.name||CU.username)[0].toUpperCase();
+    const rb=document.getElementById('sb-rb');rb.textContent=CU.role==='admin'?'Admin':'Staff';rb.className='role-b rb-'+CU.role;
+    document.getElementById('m-staff').value=CU.name||CU.username;
+    if(CU.role==='admin'){document.getElementById('admin-nav').style.display='block';document.getElementById('admin-stock').style.display='block'}
+    await loadCfg_silent();
+    await loadDisps_silent();
+    fillDispenserSelects();
+    nav('dash');
+  } else {
+    CU=null;
+    document.getElementById('auth-wrap').style.display='flex';
+    document.getElementById('app').style.display='none';
+    document.getElementById('admin-nav').style.display='none';
+    document.getElementById('admin-stock').style.display='none';
+    const btn=document.getElementById('li-btn');if(btn){btn.disabled=false;btn.textContent='เข้าสู่ระบบ'}
+  }
+});
+
+window.doLogout = () => signOut(auth);
+
+// ── SETTINGS ─────────────────────────────────────────────
+async function loadCfg_silent(){
+  const snap = await getDoc(doc(db,'settings','station'));
+  CFG = snap.exists() ? snap.data() : {name:'',price:{'91':39.50,'95':43.50,diesel:33.44},cost:{'91':36,'95':39.80,diesel:30.50}};
+  const nm = CFG.name||'ปั๊มน้ำมัน';
+  document.getElementById('sb-station').textContent=nm;
+  document.getElementById('auth-station-name').textContent=nm;
+  document.getElementById('sb-sub').textContent=CFG.address||'';
+}
+async function loadCfg(){
+  await loadCfg_silent();
+  document.getElementById('cfg-name').value=CFG.name||'';
+  document.getElementById('cfg-tax').value=CFG.taxid||'';
+  document.getElementById('cfg-addr').value=CFG.address||'';
+  document.getElementById('cfg-tel').value=CFG.tel||'';
+  document.getElementById('px-91').value=CFG.price?.['91']||'';
+  document.getElementById('px-95').value=CFG.price?.['95']||'';
+  document.getElementById('px-d').value=CFG.price?.diesel||'';
+  document.getElementById('cx-91').value=CFG.cost?.['91']||'';
+  document.getElementById('cx-95').value=CFG.cost?.['95']||'';
+  document.getElementById('cx-d').value=CFG.cost?.diesel||'';
+}
+window.saveSettings = async () => {
+  CFG={name:document.getElementById('cfg-name').value,taxid:document.getElementById('cfg-tax').value,address:document.getElementById('cfg-addr').value,tel:document.getElementById('cfg-tel').value,price:{'91':+document.getElementById('px-91').value,'95':+document.getElementById('px-95').value,diesel:+document.getElementById('px-d').value},cost:{'91':+document.getElementById('cx-91').value,'95':+document.getElementById('cx-95').value,diesel:+document.getElementById('cx-d').value}};
+  await setDoc(doc(db,'settings','station'),CFG);
+  document.getElementById('sb-station').textContent=CFG.name||'ปั๊มน้ำมัน';
+  al('cfg-al','บันทึกเรียบร้อยแล้ว ✓');
+};
+
+// ── DISPENSERS ────────────────────────────────────────────
+async function loadDisps_silent(){
+  const snap = await getDocs(query(collection(db,'dispensers'),orderBy('code')));
+  DISPS = snap.docs.map(d=>({id:d.id,...d.data()}));
+}
+function fillDispenserSelects(){
+  ['d-disp','h-disp'].forEach(sid=>{
+    const s=document.getElementById(sid);if(!s)return;
+    const cur=s.value;s.innerHTML='<option value="">ทั้งหมด</option>';
+    DISPS.filter(d=>d.active).forEach(d=>{const o=document.createElement('option');o.value=d.id;o.textContent=d.name;s.appendChild(o)});
+    if(cur)s.value=cur;
+  });
+  const tps=document.getElementById('tp-disp');if(tps){tps.innerHTML='';DISPS.filter(d=>d.active).forEach(d=>{const o=document.createElement('option');o.value=d.id;o.textContent=d.name+' ('+d.fuel+')';tps.appendChild(o)})}
+}
+function renderDisps(){
+  const g=document.getElementById('disp-grid');
+  if(!DISPS.length){g.innerHTML='<div class="empty">ยังไม่มีหัวจ่าย</div>';return}
+  g.innerHTML=DISPS.map(d=>`<div class="disp-card">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:.75rem"><div><div style="font-size:.9rem;font-weight:600">${d.name}</div><div style="font-size:.75rem;color:var(--text3)">รหัส: ${d.code}</div></div>${ftag(d.fuel)}</div>
+    <div class="lm">มิเตอร์ล่าสุด: ${d.lastMeter!=null?fmt(d.lastMeter):'—'}</div><br>
+    <span class="tag" style="${d.active?'background:var(--gbg);color:var(--green)':'background:var(--rbg);color:var(--red)'}">${d.active?'ใช้งาน':'ปิดใช้'}</span>
+    <div style="display:flex;gap:6px;margin-top:8px"><button class="btn btn-sm" onclick="openDM('${d.id}')">แก้ไข</button><button class="btn btn-sm btn-r" onclick="delDisp('${d.id}')">ลบ</button></div>
+  </div>`).join('');
+}
+window.openDM = async (id=null) => {
+  editDispId=id; document.getElementById('dm-title').textContent=id?'แก้ไขหัวจ่าย':'เพิ่มหัวจ่าย';
+  if(id){const d=DISPS.find(x=>x.id===id);if(d){document.getElementById('dm-name').value=d.name;document.getElementById('dm-fuel').value=d.fuel;document.getElementById('dm-code').value=d.code;document.getElementById('dm-st').value=d.active?'1':'0'}}
+  else{document.getElementById('dm-name').value='';document.getElementById('dm-code').value='';document.getElementById('dm-fuel').value='91';document.getElementById('dm-st').value='1'}
+  document.getElementById('disp-modal').style.display='flex';
+};
+window.saveDisp = async () => {
+  const name=document.getElementById('dm-name').value.trim(),code=document.getElementById('dm-code').value.trim();
+  if(!name||!code){alert('กรุณากรอกชื่อและรหัส');return}
+  const data={name,fuel:document.getElementById('dm-fuel').value,code,active:document.getElementById('dm-st').value==='1'};
+  if(editDispId){await updateDoc(doc(db,'dispensers',editDispId),data)}
+  else{data.lastMeter=null;await addDoc(collection(db,'dispensers'),data)}
+  await loadDisps_silent();renderDisps();fillDispenserSelects();closeM('disp-modal');
+};
+window.delDisp = async id => {
+  if(!confirm('ยืนยันลบหัวจ่าย?'))return;
+  await deleteDoc(doc(db,'dispensers',id));
+  await loadDisps_silent();renderDisps();fillDispenserSelects();
+};
+
+// ── NAV ───────────────────────────────────────────────────
+const PAGE_LOAD={dash:loadDash,meter:loadMeter,stock:loadStock,history:()=>loadHistory(),report:()=>{},dispensers:()=>{loadDisps_silent().then(renderDisps)},users:loadUsers,settings:loadCfg,fbguide:()=>{}};
+window.copyCode = (id, btn) => {
+  const el = document.getElementById(id);
+  if(!el) return;
+  navigator.clipboard.writeText(el.innerText).then(()=>{
+    btn.textContent='คัดลอกแล้ว ✓'; btn.style.color='var(--green)';
+    setTimeout(()=>{btn.textContent='คัดลอก';btn.style.color=''},2000);
+  });
+};
+window.nav = p => {
+  document.querySelectorAll('.pc').forEach(e=>e.style.display='none');
+  document.querySelectorAll('.nav-i').forEach(e=>e.classList.remove('active'));
+  document.getElementById('page-'+p).style.display='block';
+  const nb=document.getElementById('nav-'+p);if(nb)nb.classList.add('active');
+  if(PAGE_LOAD[p])PAGE_LOAD[p]();
+};
+
+// ── DASHBOARD ─────────────────────────────────────────────
+window.dTab = (t,btn) => {
+  document.querySelectorAll('#page-dash .tab-b').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('#page-dash .tc').forEach(c=>c.classList.remove('active'));
+  btn.classList.add('active');document.getElementById('tc-'+t).classList.add('active');
+};
+async function loadDash(){
+  document.getElementById('dash-date').textContent=new Date().toLocaleDateString('th-TH',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+  const from=document.getElementById('df').value||daysAgo(6);
+  const to=document.getElementById('dt').value||today();
+  const fd=document.getElementById('d-disp').value;
+  document.getElementById('df').value=from; document.getElementById('dt').value=to;
+  let q=query(collection(db,'meterEntries'),where('date','>=',from),where('date','<=',to),orderBy('date','desc'));
+  const snap=await getDocs(q);
+  let ents=snap.docs.map(d=>d.data());
+  if(fd)ents=ents.filter(e=>e.dispenserId===fd);
+  const isAdmin=CU?.role==='admin';
+  let tR=0,tC=0,tS=0;const shifts=new Set();const sold={'91':0,'95':0,diesel:0};
+  ents.forEach(e=>{tR+=e.revenue||0;tC+=e.costAmount||0;tS+=e.soldLiters||0;sold[e.fuel]=(sold[e.fuel]||0)+e.soldLiters;shifts.add(e.date+e.shift)});
+  let sHTML=`<div class="sb c-blue"><div class="sl">รวมจ่ายน้ำมัน</div><div class="sv">${fmt(tS,0)}</div><div class="su">ลิตร</div></div>
+    <div class="sb"><div class="sl">91 จ่ายแล้ว</div><div class="sv" style="font-size:1.2rem">${fmt(sold['91'],0)}</div><div class="su">ลิตร</div></div>
+    <div class="sb"><div class="sl">95 จ่ายแล้ว</div><div class="sv" style="font-size:1.2rem">${fmt(sold['95'],0)}</div><div class="su">ลิตร</div></div>
+    <div class="sb c-amber"><div class="sl">ดีเซลจ่ายแล้ว</div><div class="sv" style="font-size:1.2rem">${fmt(sold.diesel,0)}</div><div class="su">ลิตร</div></div>
+    <div class="sb"><div class="sl">จำนวนกะ</div><div class="sv" style="font-size:1.2rem">${shifts.size}</div><div class="su">กะ</div></div>`;
+  if(isAdmin)sHTML+=`<div class="sb c-blue"><div class="sl">ยอดขายรวม</div><div class="sv">${fmt(tR,0)}</div><div class="su">บาท</div></div><div class="sb c-green"><div class="sl">กำไรรวม</div><div class="sv">${fmt(tR-tC,0)}</div><div class="su">บาท</div></div>`;
+  document.getElementById('dash-stats').innerHTML=sHTML;
+  ['th-rev0','th-rev1','th-rev2','th-cost','th-profit'].forEach(id=>{const el=document.getElementById(id);if(el)el.style.display=isAdmin?'':'none'});
+  // Summary
+  const grp={};ents.forEach(e=>{const k=e.date+'-'+e.shift;if(!grp[k])grp[k]={date:e.date,shift:e.shift,staff:e.staff,f91:0,f95:0,fd:0,rev:0,total:0};if(e.fuel==='91')grp[k].f91+=e.soldLiters;else if(e.fuel==='95')grp[k].f95+=e.soldLiters;else grp[k].fd+=e.soldLiters;grp[k].rev+=e.revenue||0;grp[k].total+=e.soldLiters});
+  const rows=Object.values(grp).sort((a,b)=>b.date.localeCompare(a.date));
+  document.getElementById('dt-sum').innerHTML=rows.length?rows.map(r=>`<tr><td>${r.date}</td><td>${stag(r.shift)}</td><td>${r.staff}</td><td class="mono">${fmt(r.f91)}</td><td class="mono">${fmt(r.f95)}</td><td class="mono">${fmt(r.fd)}</td><td class="mono"><b>${fmt(r.total)}</b></td>${isAdmin?`<td class="mono">${fmt(r.rev)}</td>`:''}</tr>`).join(''):`<tr><td colspan="8"><div class="empty">ไม่มีข้อมูล</div></td></tr>`;
+  // By dispenser
+  const dg={};ents.forEach(e=>{if(!dg[e.dispenserId])dg[e.dispenserId]={name:e.dispenserName,fuel:e.fuel,sold:0,rev:0,morn:0,eve:0};dg[e.dispenserId].sold+=e.soldLiters;dg[e.dispenserId].rev+=e.revenue||0;dg[e.dispenserId][e.shift==='morning'?'morn':'eve']+=e.soldLiters});
+  const drows=Object.values(dg).sort((a,b)=>b.sold-a.sold);
+  document.getElementById('dt-disp').innerHTML=drows.length?drows.map(r=>`<tr><td><b>${r.name}</b></td><td>${ftag(r.fuel)}</td><td class="mono"><b>${fmt(r.sold)}</b></td>${isAdmin?`<td class="mono">${fmt(r.rev)}</td>`:''}<td class="mono">${fmt(r.morn)}</td><td class="mono">${fmt(r.eve)}</td></tr>`).join(''):`<tr><td colspan="6"><div class="empty">ไม่มีข้อมูล</div></td></tr>`;
+  // By fuel
+  const ft={'91':{sold:0,rev:0,cost:0},'95':{sold:0,rev:0,cost:0},diesel:{sold:0,rev:0,cost:0}};
+  ents.forEach(e=>{ft[e.fuel].sold+=e.soldLiters;ft[e.fuel].rev+=e.revenue||0;ft[e.fuel].cost+=e.costAmount||0});
+  const fL={'91':'เบนซิน 91','95':'เบนซิน 95',diesel:'ดีเซล'};
+  document.getElementById('dt-fuel').innerHTML=['91','95','diesel'].map(f=>{const t=ft[f];const p=t.rev-t.cost;return`<tr><td>${ftag(f)} ${fL[f]}</td><td class="mono">${fmt(t.sold)}</td>${isAdmin?`<td class="mono">${fmt(t.rev)}</td><td class="mono">${fmt(t.cost)}</td><td class="mono" style="color:${p>=0?'var(--green)':'var(--red)'}">${fmt(p)}</td>`:''}</tr>`}).join('');
+}
+
+// ── METER ─────────────────────────────────────────────────
+function loadMeter(){
+  document.getElementById('m-date').value=today();
+  renderMeterRows();
+}
+function renderMeterRows(){
+  const active=DISPS.filter(d=>d.active);
+  const c=document.getElementById('meter-rows');
+  if(!active.length){c.innerHTML='<div class="alert al-wn">⚠️ ยังไม่มีหัวจ่าย ไปที่ "ตั้งค่าหัวจ่าย" ก่อน</div>';return}
+  c.innerHTML=`<div class="meter-rh"><div>หัวจ่าย</div><div>มิเตอร์ต้นกะ</div><div>มิเตอร์ปลายกะ</div><div>จ่าย (ล.)</div></div>`+
+  active.map(d=>`<div class="meter-r" id="mr-${d.id}">
+    <div><div style="font-size:.86rem;font-weight:500">${d.name}</div><div style="margin-top:2px">${ftag(d.fuel)}</div>${d.lastMeter!=null?`<div class="lm">ล่าสุด: ${fmt(d.lastMeter)}</div>`:''}</div>
+    <div><input type="number" id="ms-${d.id}" value="${d.lastMeter??''}" step="0.01" oninput="calcR('${d.id}')"><span class="fe" id="merr-${d.id}" style="display:none">ปลายต้องมากกว่าต้น</span></div>
+    <div><input type="number" id="me-${d.id}" step="0.01" placeholder="0.00" oninput="calcR('${d.id}')"></div>
+    <input type="number" id="msold-${d.id}" readonly placeholder="—" style="font-family:'IBM Plex Mono',monospace">
+  </div>`).join('');
+}
+window.calcR = id => {
+  const s=parseFloat(document.getElementById('ms-'+id)?.value)||0,e=parseFloat(document.getElementById('me-'+id)?.value)||0;
+  const ee=document.getElementById('merr-'+id),endEl=document.getElementById('me-'+id),row=document.getElementById('mr-'+id),sv=document.getElementById('msold-'+id);
+  if(e>0&&e<s){ee.style.display='block';endEl.classList.add('err');row.classList.add('has-err');sv.value=''}
+  else{ee.style.display='none';endEl.classList.remove('err');row.classList.remove('has-err');sv.value=e>0?(e-s).toFixed(2):''}
+};
+window.clearMeter = () => {DISPS.filter(d=>d.active).forEach(d=>{const e=document.getElementById('me-'+d.id);if(e)e.value='';const s=document.getElementById('msold-'+d.id);if(s)s.value=''});document.getElementById('m-note').value=''};
+window.saveMeter = async () => {
+  const date=document.getElementById('m-date').value,shift=document.getElementById('m-shift').value,staff=document.getElementById('m-staff').value.trim();
+  if(!date||!staff){al('meter-al','กรุณากรอกวันที่และชื่อพนักงาน','er');return}
+  const active=DISPS.filter(d=>d.active);
+  let entries=[],hasErr=false;
+  for(const d of active){
+    const s=parseFloat(document.getElementById('ms-'+d.id)?.value),e=parseFloat(document.getElementById('me-'+d.id)?.value);
+    if(isNaN(s)||isNaN(e)||e===0)continue;
+    if(e<s){hasErr=true;break}
+    const sold=e-s,price=CFG.price?.[d.fuel]||0,cost=CFG.cost?.[d.fuel]||0;
+    entries.push({date,shift,staff,dispenserId:d.id,dispenserName:d.name,fuel:d.fuel,startMeter:s,endMeter:e,soldLiters:+sold.toFixed(4),revenue:+(sold*price).toFixed(2),costAmount:+(sold*cost).toFixed(2),note:document.getElementById('m-note').value,createdAt:serverTimestamp(),createdBy:CU.uid});
+  }
+  if(hasErr){al('meter-al','มีข้อผิดพลาด ตรวจสอบมิเตอร์','er');return}
+  if(!entries.length){al('meter-al','กรุณากรอกเลขมิเตอร์อย่างน้อย 1 หัวจ่าย','wn');return}
+  const btn=document.getElementById('save-meter-btn');btn.disabled=true;btn.textContent='กำลังบันทึก...';
+  try{
+    for(const en of entries){
+      await addDoc(collection(db,'meterEntries'),en);
+      await updateDoc(doc(db,'dispensers',en.dispenserId),{lastMeter:en.endMeter});
+      const sRef=doc(db,'stock',en.fuel);
+      const sSnap=await getDoc(sRef);
+      const cur=sSnap.exists()?(sSnap.data().liters||0):0;
+      const after=Math.max(0,cur-en.soldLiters);
+      await setDoc(sRef,{liters:after,updatedAt:serverTimestamp()},{merge:true});
+      await addDoc(collection(db,'stockLog'),{date:en.date,fuel:en.fuel,type:'sale',disp:en.dispenserName,qty:-en.soldLiters,after,note:`ขายกะ${en.shift==='morning'?'เช้า':'เย็น'} โดย ${en.staff}`,createdAt:serverTimestamp()});
+    }
+    await loadDisps_silent();renderMeterRows();fillDispenserSelects();
+    al('meter-al',`บันทึก ${entries.length} หัวจ่าย เรียบร้อยแล้ว ✓`);
+    document.getElementById('m-note').value='';
+  }catch(e){al('meter-al','เกิดข้อผิดพลาด: '+e.message,'er')}
+  btn.disabled=false;btn.textContent='💾 บันทึกกะ';
+};
+
+// ── STOCK ─────────────────────────────────────────────────
+async function loadStock(){
+  const labels={'91':'เบนซิน 91','95':'เบนซิน 95',diesel:'ดีเซล'};
+  let html='';
+  for(const f of ['91','95','diesel']){
+    const snap=await getDoc(doc(db,'stock',f));
+    const v=snap.exists()?(snap.data().liters||0):0;
+    const low=v<500,mid=v<2000&&v>=500;
+    html+=`<div class="stock-card"><div class="stock-fuel-hd"><div style="font-size:.95rem;font-weight:600">${labels[f]}</div>${ftag(f)}</div><div class="stock-val ${low?'stock-low':mid?'stock-mid':'stock-ok'}">${fmt(v,0)}</div><div style="font-size:.72rem;color:var(--text3);margin-top:4px">ลิตร${low?' ⚠️ ใกล้หมด':mid?' ⚡ เหลือน้อย':' ✓ ปกติ'}</div></div>`;
+  }
+  document.getElementById('stock-cards').innerHTML=html;
+  ['rv-date','adj-date','tp-date'].forEach(id=>{const el=document.getElementById(id);if(el)el.value=today()});
+  fillDispenserSelects();
+  renderStockLog();
+}
+window.sTab = (t,btn) => {
+  document.querySelectorAll('#page-stock .tab-b').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('#page-stock .tc').forEach(c=>c.classList.remove('active'));
+  btn.classList.add('active');document.getElementById('stc-'+t).classList.add('active');
+};
+async function renderStockLog(){
+  const snap=await getDocs(query(collection(db,'stockLog'),orderBy('createdAt','desc'),limit(80)));
+  const rows=snap.docs.map(d=>d.data());
+  const typeL={sale:'💧 ขาย',recv:'📥 รับน้ำมัน',adjust:'🔧 ปรับสต็อก',test:'🧪 ทดสอบ'};
+  const tb=document.getElementById('slog-tb');
+  if(!rows.length){tb.innerHTML=`<tr><td colspan="6"><div class="empty">ยังไม่มีประวัติ</div></td></tr>`;return}
+  tb.innerHTML=rows.map(r=>`<tr><td>${r.date}</td><td>${ftag(r.fuel)}</td><td>${typeL[r.type]||r.type}</td><td class="mono" style="color:${(r.qty||0)>=0?'var(--green)':'var(--red)'}">${(r.qty||0)>=0?'+':''}${fmt(r.qty||0)}</td><td class="mono">${fmt(r.after)}</td><td style="color:var(--text3)">${r.note||'—'}</td></tr>`).join('');
+}
+window.saveRecv = async () => {
+  const date=document.getElementById('rv-date').value,fuel=document.getElementById('rv-fuel').value;
+  const qty=parseFloat(document.getElementById('rv-qty').value),cost=parseFloat(document.getElementById('rv-cost').value)||0;
+  if(!date||!qty||qty<=0){al('recv-al','กรุณากรอกข้อมูลให้ครบ','er');return}
+  await addDoc(collection(db,'fuelReceives'),{date,fuel,qty,cost,inv:document.getElementById('rv-inv').value,sup:document.getElementById('rv-sup').value,createdAt:serverTimestamp(),createdBy:CU.uid});
+  const sRef=doc(db,'stock',fuel);const sSnap=await getDoc(sRef);
+  const cur=sSnap.exists()?(sSnap.data().liters||0):0;const after=cur+qty;
+  await setDoc(sRef,{liters:after,updatedAt:serverTimestamp()},{merge:true});
+  await addDoc(collection(db,'stockLog'),{date,fuel,type:'recv',disp:'—',qty,after,note:`รับจาก ${document.getElementById('rv-sup').value||'—'} ใบส่งของ ${document.getElementById('rv-inv').value||'—'}`,createdAt:serverTimestamp()});
+  al('recv-al',`รับน้ำมัน ${qty.toLocaleString()} ลิตร เรียบร้อย ✓`);
+  document.getElementById('rv-qty').value='';document.getElementById('rv-inv').value='';
+  loadStock();
+};
+window.calcAdj = async () => {
+  const fuel=document.getElementById('adj-fuel').value;
+  const real=parseFloat(document.getElementById('adj-real').value);
+  const box=document.getElementById('adj-diff');
+  if(isNaN(real)){box.style.display='none';return}
+  const snap=await getDoc(doc(db,'stock',fuel));
+  const cur=snap.exists()?(snap.data().liters||0):0;
+  const diff=real-cur;
+  box.className='alert '+(diff>=0?'al-ok':'al-wn');
+  box.textContent=`ในระบบ: ${fmt(cur)} ล. | วัดจริง: ${fmt(real)} ล. | ผลต่าง: ${diff>=0?'+':''}${fmt(diff)} ล.`;
+  box.style.display='flex';
+};
+window.saveAdj = async () => {
+  const date=document.getElementById('adj-date').value,fuel=document.getElementById('adj-fuel').value;
+  const real=parseFloat(document.getElementById('adj-real').value);
+  if(!date||isNaN(real)){al('adj-al','กรุณากรอกข้อมูล','er');return}
+  const snap=await getDoc(doc(db,'stock',fuel));const cur=snap.exists()?(snap.data().liters||0):0;const diff=real-cur;
+  await setDoc(doc(db,'stock',fuel),{liters:real,updatedAt:serverTimestamp()},{merge:true});
+  await addDoc(collection(db,'stockLog'),{date,fuel,type:'adjust',disp:'—',qty:diff,after:real,note:document.getElementById('adj-note').value||'ปรับสต็อกตามการวัดจริง',createdAt:serverTimestamp()});
+  al('adj-al','ปรับสต็อกเรียบร้อยแล้ว ✓');
+  document.getElementById('adj-real').value='';document.getElementById('adj-diff').style.display='none';
+  loadStock();
+};
+window.saveTest = async () => {
+  const date=document.getElementById('tp-date').value,dispId=document.getElementById('tp-disp').value;
+  const qty=parseFloat(document.getElementById('tp-qty').value),ret=document.getElementById('tp-ret').value==='yes';
+  if(!date||!dispId||!qty||qty<=0){al('test-al','กรุณากรอกข้อมูลให้ครบ','er');return}
+  const disp=DISPS.find(d=>d.id===dispId);if(!disp)return;
+  const note=`ทดสอบหัวจ่าย ${disp.name} ${ret?'(คืนน้ำมันกลับแล้ว)':'(ไม่คืน)'} — ${document.getElementById('tp-note').value}`;
+  if(ret){
+    const snap=await getDoc(doc(db,'stock',disp.fuel));const cur=snap.exists()?(snap.data().liters||0):0;
+    await addDoc(collection(db,'stockLog'),{date,fuel:disp.fuel,type:'test',disp:disp.name,qty:0,after:cur,note,createdAt:serverTimestamp()});
+    al('test-al','บันทึกการทดสอบ (คืนน้ำมันกลับ) สต็อกไม่เปลี่ยน ✓');
+  }else{
+    const sRef=doc(db,'stock',disp.fuel);const sSnap=await getDoc(sRef);
+    const cur=sSnap.exists()?(sSnap.data().liters||0):0;const after=Math.max(0,cur-qty);
+    await setDoc(sRef,{liters:after,updatedAt:serverTimestamp()},{merge:true});
+    await addDoc(collection(db,'stockLog'),{date,fuel:disp.fuel,type:'test',disp:disp.name,qty:-qty,after,note,createdAt:serverTimestamp()});
+    al('test-al',`หักสต็อก ${qty} ลิตร เรียบร้อย`,'wn');
+  }
+  document.getElementById('tp-qty').value='';loadStock();
+};
+
+// ── HISTORY ───────────────────────────────────────────────
+async function loadHistory(){
+  const from=document.getElementById('hf').value||daysAgo(30),to=document.getElementById('ht').value||today();
+  document.getElementById('hf').value=from;document.getElementById('ht').value=to;
+  const fd=document.getElementById('h-disp').value;
+  let q=query(collection(db,'meterEntries'),where('date','>=',from),where('date','<=',to),orderBy('date','desc'));
+  const snap=await getDocs(q);
+  let ents=snap.docs.map(d=>({id:d.id,...d.data()}));
+  if(fd)ents=ents.filter(e=>e.dispenserId===fd);
+  const isAdmin=CU?.role==='admin';
+  const tb=document.getElementById('hist-tb');
+  if(!ents.length){tb.innerHTML=`<tr><td colspan="10"><div class="empty">ไม่มีข้อมูลในช่วงนี้</div></td></tr>`;return}
+  tb.innerHTML=ents.map(e=>`<tr><td>${e.date}</td><td>${stag(e.shift)}</td><td>${e.staff}</td><td>${e.dispenserName}</td><td>${ftag(e.fuel)}</td><td class="mono">${fmt(e.startMeter)}</td><td class="mono">${fmt(e.endMeter)}</td><td class="mono"><b>${fmt(e.soldLiters)}</b></td><td style="color:var(--text3)">${e.note||'—'}</td><td>${isAdmin?`<button class="btn btn-sm" onclick="openEdit('${e.id}')">แก้ไข</button><button class="btn btn-sm btn-r" onclick="delEntry('${e.id}')">ลบ</button>`:''}</td></tr>`).join('');
+}
+window.delEntry = async id => {if(!confirm('ยืนยันลบ?'))return;await deleteDoc(doc(db,'meterEntries',id));loadHistory()};
+window.openEdit = async id => {
+  const snap=await getDoc(doc(db,'meterEntries',id));if(!snap.exists())return;
+  const e=snap.data();
+  document.getElementById('em-id').value=id;document.getElementById('em-date').value=e.date;document.getElementById('em-shift').value=e.shift;document.getElementById('em-staff').value=e.staff;document.getElementById('em-disp').value=e.dispenserName;document.getElementById('em-s').value=e.startMeter;document.getElementById('em-e').value=e.endMeter;document.getElementById('em-sold').value=e.soldLiters;document.getElementById('em-note').value=e.note||'';document.getElementById('em-err').style.display='none';
+  document.getElementById('edit-modal').style.display='flex';
+};
+window.calcEm = () => {
+  const s=parseFloat(document.getElementById('em-s').value)||0,e=parseFloat(document.getElementById('em-e').value)||0;
+  const err=document.getElementById('em-err');
+  if(e>0&&e<s){err.style.display='block';document.getElementById('em-sold').value='';return}
+  err.style.display='none';document.getElementById('em-sold').value=e>0?(e-s).toFixed(2):'';
+};
+window.saveEdit = async () => {
+  const id=document.getElementById('em-id').value,s=parseFloat(document.getElementById('em-s').value),e=parseFloat(document.getElementById('em-e').value);
+  if(e<s){document.getElementById('em-err').style.display='block';return}
+  const sold=e-s;
+  const snap=await getDoc(doc(db,'meterEntries',id));const fuel=snap.data().fuel;
+  await updateDoc(doc(db,'meterEntries',id),{date:document.getElementById('em-date').value,shift:document.getElementById('em-shift').value,staff:document.getElementById('em-staff').value,startMeter:s,endMeter:e,soldLiters:+sold.toFixed(4),revenue:+(sold*(CFG.price?.[fuel]||0)).toFixed(2),costAmount:+(sold*(CFG.cost?.[fuel]||0)).toFixed(2),note:document.getElementById('em-note').value,editedAt:serverTimestamp(),editedBy:CU.uid});
+  closeM('edit-modal');loadHistory();
+};
+
+// ── REPORT COLUMN VISIBILITY ──────────────────────────────
+const COL_MAP = {
+  // summary stats
+  totalRev:    '.rpt-stat-rev',
+  totalCost:   '.rpt-stat-cost',
+  totalProfit: '.rpt-stat-profit',
+  margin:      '.rpt-stat-margin',
+  // fuel table columns (th + td by index class)
+  liters:      '.rpt-col-liters',
+  price:       '.rpt-col-price',
+  rev:         '.rpt-col-rev',
+  cost:        '.rpt-col-cost',
+  profit:      '.rpt-col-profit',
+  profitPct:   '.rpt-col-pct',
+  // detail table
+  staff:       '.rpt-col-staff',
+  dispName:    '.rpt-col-disp',
+  detRev:      '.rpt-col-detrev',
+  detProfit:   '.rpt-col-detprofit',
+};
+window.updateColVisibility = () => {
+  Object.entries(COL_MAP).forEach(([key, sel]) => {
+    const visible = document.getElementById('col-'+key)?.checked ?? true;
+    document.querySelectorAll('#report-out '+sel).forEach(el => {
+      el.classList.toggle('col-hidden', !visible);
+    });
+  });
+};
+window.setPreset = preset => {
+  const all  = Object.keys(COL_MAP);
+  const hide = {
+    accounting: ['totalCost','totalProfit','margin','cost','profit','profitPct','detProfit'],
+    stock:      ['totalRev','totalCost','totalProfit','margin','price','rev','cost','profit','profitPct','staff','detRev','detProfit'],
+    full:       [],
+  }[preset] || [];
+  all.forEach(k => {
+    const el = document.getElementById('col-'+k);
+    if(el) el.checked = !hide.includes(k);
+  });
+  updateColVisibility();
+};
+
+// ── REPORT ────────────────────────────────────────────────
+window.genReport = async () => {
+  const from=document.getElementById('rf').value,to=document.getElementById('rt').value;
+  if(!from||!to)return;
+  const snap=await getDocs(query(collection(db,'meterEntries'),where('date','>=',from),where('date','<=',to),orderBy('date')));
+  const ents=snap.docs.map(d=>d.data());
+  const tots={'91':{sold:0,rev:0,cost:0},'95':{sold:0,rev:0,cost:0},diesel:{sold:0,rev:0,cost:0}};
+  ents.forEach(e=>{tots[e.fuel].sold+=e.soldLiters;tots[e.fuel].rev+=e.revenue||0;tots[e.fuel].cost+=e.costAmount||0});
+  const tR=Object.values(tots).reduce((s,t)=>s+t.rev,0),tC=Object.values(tots).reduce((s,t)=>s+t.cost,0);
+  const fL={'91':'เบนซิน 91','95':'เบนซิน 95',diesel:'ดีเซล'};
+  document.getElementById('report-out').innerHTML=`
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:1rem;margin-bottom:1rem">
+      <div>
+        <div style="font-size:1.05rem;font-weight:600">${CFG.name||'ปั๊มน้ำมัน'}</div>
+        <div style="font-size:.78rem;color:var(--text3)">${CFG.address||''} ${CFG.tel?'โทร '+CFG.tel:''}</div>
+        <div style="font-size:.78rem;color:var(--text3)">TAX ID: ${CFG.taxid||'—'}</div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-weight:600">รายงานยอดขาย & กำไร</div>
+        <div style="font-size:.78rem;color:var(--text3)">${from} ถึง ${to}</div>
+      </div>
+    </div>
+    <div class="sg">
+      <div class="sb c-blue rpt-stat-rev"><div class="sl">รายได้รวม</div><div class="sv">${fmt(tR,0)}</div><div class="su">บาท</div></div>
+      <div class="sb c-red rpt-stat-cost"><div class="sl">ต้นทุนรวม</div><div class="sv">${fmt(tC,0)}</div><div class="su">บาท</div></div>
+      <div class="sb c-green rpt-stat-profit"><div class="sl">กำไรรวม</div><div class="sv">${fmt(tR-tC,0)}</div><div class="su">บาท</div></div>
+      <div class="sb c-amber rpt-stat-margin"><div class="sl">% กำไร</div><div class="sv">${fmt(tR>0?(tR-tC)/tR*100:0,1)}</div><div class="su">%</div></div>
+    </div>
+    <hr class="divider">
+    <table>
+      <thead>
+        <tr>
+          <th>ประเภท</th>
+          <th class="rpt-col-liters">ปริมาณ (ล.)</th>
+          <th class="rpt-col-price">ราคาขาย</th>
+          <th class="rpt-col-rev">รายได้</th>
+          <th class="rpt-col-cost">ต้นทุน</th>
+          <th class="rpt-col-profit">กำไร</th>
+          <th class="rpt-col-pct">%</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${['91','95','diesel'].map(f=>{const t=tots[f];const p=t.rev-t.cost;const m=t.rev>0?p/t.rev*100:0;return`
+        <tr>
+          <td>${ftag(f)} ${fL[f]}</td>
+          <td class="mono rpt-col-liters">${fmt(t.sold)}</td>
+          <td class="mono rpt-col-price">${fmt(CFG.price?.[f]||0)}</td>
+          <td class="mono rpt-col-rev">${fmt(t.rev)}</td>
+          <td class="mono rpt-col-cost">${fmt(t.cost)}</td>
+          <td class="mono rpt-col-profit" style="color:${p>=0?'var(--green)':'var(--red)'}">${fmt(p)}</td>
+          <td class="mono rpt-col-pct">${fmt(m,1)}%</td>
+        </tr>`}).join('')}
+      </tbody>
+    </table>
+  </div>
+  <div class="card">
+    <div class="card-t">รายละเอียด</div>
+    <div class="tw">
+      <table>
+        <thead>
+          <tr>
+            <th>วันที่</th><th>กะ</th>
+            <th class="rpt-col-staff">พนักงาน</th>
+            <th class="rpt-col-disp">หัวจ่าย</th>
+            <th>ประเภท</th>
+            <th class="rpt-col-liters">จ่าย (ล.)</th>
+            <th class="rpt-col-detrev">ยอดขาย</th>
+            <th class="rpt-col-detprofit">กำไร</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${ents.map(e=>`
+          <tr>
+            <td>${e.date}</td><td>${stag(e.shift)}</td>
+            <td class="rpt-col-staff">${e.staff}</td>
+            <td class="rpt-col-disp">${e.dispenserName}</td>
+            <td>${ftag(e.fuel)}</td>
+            <td class="mono rpt-col-liters">${fmt(e.soldLiters)}</td>
+            <td class="mono rpt-col-detrev">${fmt(e.revenue)}</td>
+            <td class="mono rpt-col-detprofit" style="color:var(--green)">${fmt((e.revenue||0)-(e.costAmount||0))}</td>
+          </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>
+  </div>`;
+  // apply current checkbox state to freshly rendered report
+  updateColVisibility();
+};
+window.exportCSV = async () => {
+  const from=document.getElementById('rf').value||daysAgo(30),to=document.getElementById('rt').value||today();
+  const snap=await getDocs(query(collection(db,'meterEntries'),where('date','>=',from),where('date','<=',to),orderBy('date')));
+  const ents=snap.docs.map(d=>d.data());
+  let csv='\uFEFF';csv+='วันที่,กะ,พนักงาน,หัวจ่าย,ประเภทน้ำมัน,มิเตอร์ต้น,มิเตอร์ปลาย,จ่าย(ล.),ยอดขาย(บ.),ต้นทุน(บ.),กำไร(บ.),หมายเหตุ\n';
+  ents.forEach(e=>{const p=(e.revenue||0)-(e.costAmount||0);csv+=`${e.date},${e.shift==='morning'?'กะเช้า':'กะเย็น'},${e.staff},${e.dispenserName},${e.fuel==='diesel'?'ดีเซล':'เบนซิน '+e.fuel},${e.startMeter},${e.endMeter},${e.soldLiters},${e.revenue||0},${e.costAmount||0},${p.toFixed(2)},${e.note||''}\n`});
+  const b=new Blob([csv],{type:'text/csv;charset=utf-8;'});const u=URL.createObjectURL(b);const a=document.createElement('a');a.href=u;a.download=`report_${from}_${to}.csv`;a.click();URL.revokeObjectURL(u);
+};
+
+// ── USERS ─────────────────────────────────────────────────
+async function loadUsers(){
+  const pSnap=await getDocs(collection(db,'pendingUsers'));
+  const pending=pSnap.docs.map(d=>({id:d.id,...d.data()}));
+  const uSnap=await getDocs(collection(db,'users'));
+  const users=uSnap.docs.map(d=>({id:d.id,...d.data()}));
+  const ptb=document.getElementById('pending-tb');
+  ptb.innerHTML=pending.length?pending.map(p=>`<tr><td>${p.name}</td><td class="mono">${p.username}</td><td>${p.tel||'—'}</td><td>${p.requestedAt?.toDate?.().toLocaleDateString('th-TH')||'—'}</td><td><button class="btn btn-g btn-sm" onclick="approveUser('${p.id}')">อนุมัติ</button><button class="btn btn-r btn-sm" onclick="rejectUser('${p.id}')">ปฏิเสธ</button></td></tr>`).join(''):`<tr><td colspan="5"><div class="empty">ไม่มีคำขอรออนุมัติ</div></td></tr>`;
+  const utb=document.getElementById('all-users-tb');
+  utb.innerHTML=users.map(u=>`<tr><td>${u.name||'—'}</td><td class="mono">${u.username||'—'}</td><td>${u.role==='admin'?'<span class="tag" style="background:var(--abg);color:var(--amber)">Admin</span>':'<span class="tag t95">Staff</span>'}</td><td><span class="tag" style="${u.active?'background:var(--gbg);color:var(--green)':'background:var(--rbg);color:var(--red)'}">${u.active?'ใช้งาน':'ปิดใช้'}</span></td><td><button class="btn btn-sm ${u.active?'btn-r':'btn-g'}" onclick="toggleUser('${u.id}',${u.active})">${u.active?'ปิดใช้':'เปิดใช้'}</button>${u.role!=='admin'?`<button class="btn btn-sm btn-a" onclick="setAdmin('${u.id}')">ให้สิทธิ์ Admin</button>`:''}</td></tr>`).join('');
+}
+window.approveUser = async pid => {
+  const snap=await getDoc(doc(db,'pendingUsers',pid));if(!snap.exists())return;
+  const p=snap.data();
+  const email=p.username+'@pump.local';
+  try{
+    const cred=await createUserWithEmailAndPassword(auth,email,p.pass);
+    await setDoc(doc(db,'users',cred.user.uid),{name:p.name,username:p.username,email,role:'staff',active:true,createdAt:serverTimestamp()});
+    await deleteDoc(doc(db,'pendingUsers',pid));
+    al('user-al',`อนุมัติ ${p.name} เรียบร้อยแล้ว`);loadUsers();
+  }catch(e){al('user-al','เกิดข้อผิดพลาด: '+e.message,'er')}
+};
+window.rejectUser = async pid => {await deleteDoc(doc(db,'pendingUsers',pid));loadUsers()};
+window.toggleUser = async (id,active) => {await updateDoc(doc(db,'users',id),{active:!active});loadUsers()};
+window.setAdmin = async id => {if(!confirm('ให้สิทธิ์ Admin?'))return;await updateDoc(doc(db,'users',id),{role:'admin'});loadUsers()};
+
+// ── INIT DATES ────────────────────────────────────────────
+const t0=today();
+document.getElementById('rf').value=t0.substring(0,8)+'01';
+document.getElementById('rt').value=t0;
+</script>
+</body>
+</html>
